@@ -5,6 +5,14 @@
     font-family: inherit;
 }
 
+*:-internal-autofill-selected {
+    background-color: var(--bg-secondary) !important;
+    caret-color: var(--text-color) !important;
+    box-shadow: 0 0 0px 1000px var(--bg-secondary) inset !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+    -webkit-text-fill-color: var(--text-color) !important;
+}
+
 a {
     text-decoration: none;
     color: inherit;

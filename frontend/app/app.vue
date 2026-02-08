@@ -13,6 +13,8 @@
     <UiButton size="lg">
       Click me
     </UiButton>
+    <UiInput name="name" label="Name" placeholder="Enter your name" />
+    <UiInput name="password" label="Password" placeholder="Enter your password" type="password" />
   </div>
 </template>
 
