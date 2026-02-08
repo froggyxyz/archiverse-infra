@@ -15,6 +15,7 @@
     </UiButton>
     <UiInput name="name" label="Name" placeholder="Enter your name" />
     <UiInput name="password" label="Password" placeholder="Enter your password" type="password" />
+    <UiTextarea name="description" label="Description" placeholder="Enter your description" />
   </div>
 </template>
 
