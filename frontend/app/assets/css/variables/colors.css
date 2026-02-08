@@ -1,0 +1,8 @@
+:root {
+    --color-primary: #080808;
+    --color-secondary: #fff;
+    --text-color: var(--color-secondary);
+    --bg-color: var(--color-primary);
+    --bg-secondary: #202020;
+    --accent-color: #c521c5;
+}

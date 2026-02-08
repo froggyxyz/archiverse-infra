@@ -1,0 +1,10 @@
+*::selection {
+    background-color: var(--accent-color);
+    color: var(--text-color);
+}
+
+body {
+    font-family: var(--font-primary);
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
