@@ -4,24 +4,24 @@ definePageMeta({
 })
 
 const { login, isAuthenticated } = useAuth()
+const { addError, addInfo, clear } = useAlerts()
 const router = useRouter()
 const route = useRoute()
 
 const username = ref('')
 const password = ref('')
 const isLoading = ref(false)
-const errorMessage = ref('')
 
 const redirectTo = computed(() => (route.query.redirect as string) ?? '/')
 
 const handleSubmit = async () => {
-  errorMessage.value = ''
+  clear()
   isLoading.value = true
   try {
     await login({ username: username.value, password: password.value })
     await router.push(redirectTo.value)
   } catch (e) {
-    errorMessage.value = (e as { data?: { message?: string } })?.data?.message ?? 'Ошибка входа'
+    addError((e as { data?: { message?: string } })?.data?.message ?? 'Ошибка входа')
   } finally {
     isLoading.value = false
   }
@@ -30,6 +30,12 @@ const handleSubmit = async () => {
 watch(isAuthenticated, (auth) => {
   if (auth) router.push(redirectTo.value)
 }, { immediate: true })
+
+onMounted(() => {
+  if (route.query.session_expired === '1') {
+    addInfo('Сессия истекла. Войдите снова.')
+  }
+})
 </script>
 
 <template>
@@ -52,9 +58,6 @@ watch(isAuthenticated, (auth) => {
         placeholder="••••••••"
         required
       />
-      <p v-if="errorMessage" class="error">
-        {{ errorMessage }}
-      </p>
       <UiButton type="submit" width="full" size="lg" :disabled="isLoading">
         {{ isLoading ? 'Вход...' : 'Войти' }}
       </UiButton>
@@ -79,11 +82,6 @@ watch(isAuthenticated, (auth) => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.error {
-  color: var(--color-error, #ef4444);
-  font-size: 0.875rem;
 }
 
 .link {

@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <ProvidersAlertsProvider>
     <NuxtPage />
-  </div>
+  </ProvidersAlertsProvider>
 </template>
 
 <style>

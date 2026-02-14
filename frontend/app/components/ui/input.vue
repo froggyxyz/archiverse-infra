@@ -11,7 +11,7 @@
                 :placeholder
             />
             <template v-if="type === 'password'">
-                <button class="av-input__eye" @click="toggleIsShowPassword">
+                <button type="button" class="av-input__eye" @click="toggleIsShowPassword">
                     <Icon :name="isShowPassword ? 'mdi:eye-outline' : 'mdi:eye-off-outline'" class="av-input__eye-icon" />
                 </button>
             </template>

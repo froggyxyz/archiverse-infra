@@ -6,6 +6,7 @@ definePageMeta({
 })
 
 const { register, isAuthenticated } = useAuth()
+const { addError, addInfo, clear } = useAlerts()
 const router = useRouter()
 const route = useRoute()
 
@@ -13,7 +14,6 @@ const username = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
 const isLoading = ref(false)
-const errorMessage = ref('')
 const usernameError = ref('')
 const passwordError = ref('')
 const passwordConfirmError = ref('')
@@ -30,12 +30,15 @@ const validateForm = (): boolean => {
 }
 
 const handleSubmit = async () => {
-  errorMessage.value = ''
+  clear()
   usernameError.value = ''
   passwordError.value = ''
   passwordConfirmError.value = ''
 
-  if (!validateForm()) return
+  if (!validateForm()) {
+    addInfo('Проверьте правильность заполнения полей')
+    return
+  }
 
   isLoading.value = true
   try {
@@ -44,10 +47,10 @@ const handleSubmit = async () => {
   } catch (e) {
     const err = e as { statusCode?: number; data?: { message?: string | string[] } }
     if (err.statusCode === 409) {
-      errorMessage.value = 'Имя пользователя уже занято'
+      addError('Имя пользователя уже занято')
     } else {
       const msg = err.data?.message
-      errorMessage.value = Array.isArray(msg) ? msg[0] ?? 'Ошибка регистрации' : msg ?? 'Ошибка регистрации'
+      addError(Array.isArray(msg) ? msg[0] ?? 'Ошибка регистрации' : msg ?? 'Ошибка регистрации')
     }
   } finally {
     isLoading.value = false
@@ -90,9 +93,6 @@ watch(isAuthenticated, (auth) => {
         :error="passwordConfirmError"
         required
       />
-      <p v-if="errorMessage" class="error">
-        {{ errorMessage }}
-      </p>
       <UiButton type="submit" width="full" size="lg" :disabled="isLoading">
         {{ isLoading ? 'Регистрация...' : 'Зарегистрироваться' }}
       </UiButton>
@@ -117,11 +117,6 @@ watch(isAuthenticated, (auth) => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.error {
-  color: var(--color-error, #ef4444);
-  font-size: 0.875rem;
 }
 
 .link {
