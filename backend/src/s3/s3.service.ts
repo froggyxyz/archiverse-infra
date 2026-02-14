@@ -77,6 +77,17 @@ export class S3Service {
     )
   }
 
+  async uploadBuffer(key: string, body: Buffer, contentType: string): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      }),
+    )
+  }
+
   async uploadAvatar(
     userId: string,
     file: { buffer: Buffer; mimetype: string },

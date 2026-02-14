@@ -37,6 +37,7 @@
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
+    "@tus/file-store": "^2.0.0",
     "@tus/server": "^2.3.0",
     "argon2": "^0.44.0",
     "bullmq": "^5.69.2",

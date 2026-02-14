@@ -15,12 +15,17 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import type { AuthUser } from '../auth/auth.service'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { StorageService, type StorageInfo, type CheckQuotaResult } from '../storage/storage.service'
 import { UsersService, type PublicProfile } from './users.service'
 import { UpdateProfileDto } from './dto/update-profile.dto'
+import { CheckQuotaDto } from './dto/check-quota.dto'
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -66,6 +71,21 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async removeAvatar(@CurrentUser() user: AuthUser): Promise<PublicProfile> {
     return this.users.removeAvatar(user.id)
+  }
+
+  @Get('me/storage')
+  @UseGuards(JwtAuthGuard)
+  async getStorage(@CurrentUser() user: AuthUser): Promise<StorageInfo> {
+    return this.storage.getStorage(user.id)
+  }
+
+  @Post('me/storage/check')
+  @UseGuards(JwtAuthGuard)
+  async checkQuota(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CheckQuotaDto,
+  ): Promise<CheckQuotaResult> {
+    return this.storage.checkQuota(user.id, dto.size)
   }
 
   @Get(':idOrUsername')

@@ -14,10 +14,44 @@ model User {
   username     String   @unique
   passwordHash String
   avatarUrl    String?
+  storageLimit BigInt   @default(10737418240) // 10 GB
+  storageUsed  BigInt   @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   refreshTokens RefreshToken[]
+  media        Media[]
+}
+
+model Media {
+  id            String   @id @default(cuid())
+  userId        String
+  filename      String
+  size          BigInt?  // bytes, set when upload/processing complete
+  mimeType      String
+  type          MediaType
+  s3Key         String?
+  status        MediaStatus @default(UPLOADING)
+  currentStage  String?  // for frontend: validating, compressing, transcoding, etc.
+  stageProgress Float?   // 0..1 within current stage
+  jobId         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum MediaType {
+  VIDEO
+  AUDIO
+  IMAGE
+}
+
+enum MediaStatus {
+  UPLOADING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 model RefreshToken {
