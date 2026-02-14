@@ -39,7 +39,7 @@
         <video
             ref="videoRef"
             class="av-video-player__video"
-            :src="videoUrl"
+            :src="video"
             :controls="false"
             @timeupdate="onTimeUpdate"
             @loadedmetadata="onLoadedMetadata"
@@ -53,8 +53,6 @@
 </template>
 
 <script setup lang="ts">
-import videoUrl from '~/assets/video/0519(1).mp4';
-
 interface Props {
     video: string;
     name: string;
