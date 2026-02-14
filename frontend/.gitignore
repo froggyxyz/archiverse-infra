@@ -13,6 +13,9 @@ node_modules
 logs
 *.log
 
+# Large video assets (use CDN or LFS)
+app/assets/video/
+
 # Misc
 .DS_Store
 .fleet
