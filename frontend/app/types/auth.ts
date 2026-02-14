@@ -14,6 +14,11 @@ export type LoginCredentials = {
   password: string
 }
 
+export type RegisterCredentials = {
+  username: string
+  password: string
+}
+
 export type AuthResponse = {
   user: AuthUser
   accessToken: string

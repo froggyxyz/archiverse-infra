@@ -1,7 +1,10 @@
 import type { ApiClient } from '~/types/api'
-import type { AuthResponse, LoginCredentials, RefreshResponse } from '~/types/auth'
+import type { AuthResponse, LoginCredentials, RefreshResponse, RegisterCredentials } from '~/types/auth'
 
 export const createAuthEndpoints = (api: ApiClient) => ({
+  register: (credentials: RegisterCredentials) =>
+    api.post<AuthResponse>('/auth/register', credentials),
+
   login: (credentials: LoginCredentials) =>
     api.post<AuthResponse>('/auth/login', credentials),
 

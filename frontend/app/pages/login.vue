@@ -58,6 +58,9 @@ watch(isAuthenticated, (auth) => {
       <UiButton type="submit" width="full" size="lg" :disabled="isLoading">
         {{ isLoading ? 'Вход...' : 'Войти' }}
       </UiButton>
+      <NuxtLink to="/register" class="link">
+        Нет аккаунта? Зарегистрироваться
+      </NuxtLink>
     </form>
   </div>
 </template>
@@ -81,5 +84,11 @@ watch(isAuthenticated, (auth) => {
 .error {
   color: var(--color-error, #ef4444);
   font-size: 0.875rem;
+}
+
+.link {
+  font-size: 0.875rem;
+  text-align: center;
+  color: var(--accent-color, #6366f1);
 }
 </style>

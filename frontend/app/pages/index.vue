@@ -4,6 +4,9 @@
     <UiButton href="/login">
       Вход
     </UiButton>
+    <UiButton href="/register">
+      Регистрация
+    </UiButton>
     <UiButton href="/dashboard">
       Dashboard
     </UiButton>

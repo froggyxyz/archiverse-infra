@@ -7,5 +7,6 @@ export const AUTH_KEYS = {
 
 export const AUTH_ROUTES = {
   LOGIN: '/login',
+  REGISTER: '/register',
   HOME: '/',
 } as const

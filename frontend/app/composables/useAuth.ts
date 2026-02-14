@@ -1,4 +1,4 @@
-import type { AuthResponse, LoginCredentials } from '~/types/auth'
+import type { AuthResponse, LoginCredentials, RegisterCredentials } from '~/types/auth'
 import { AUTH_ROUTES } from '~/lib/auth/constants'
 import { createAuthEndpoints } from '~/lib/api/auth-endpoints'
 import { useAuthTokens } from './useAuthTokens'
@@ -14,6 +14,16 @@ export const useAuth = () => {
   const isAuthenticated = computed(
     () => hasValidAccessToken.value || (hasRefreshToken.value && user.value !== null)
   )
+
+  const register = async (credentials: RegisterCredentials): Promise<AuthResponse> => {
+    const response = await authApi.register(credentials)
+    setTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+    })
+    setUser(response.user)
+    return response
+  }
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await authApi.login(credentials)
@@ -54,6 +64,7 @@ export const useAuth = () => {
   return {
     user,
     isAuthenticated,
+    register,
     login,
     logout,
     refresh,
