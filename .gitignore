@@ -1,0 +1,69 @@
+# Dependencies
+node_modules
+
+# Backend
+backend/node_modules
+backend/dist
+backend/build
+backend/.output
+backend/.data
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/build
+frontend/.output
+frontend/.data
+frontend/.nuxt
+frontend/.nitro
+frontend/.cache
+
+# Build outputs
+dist
+build
+.output
+.data
+.nuxt
+.nitro
+.cache
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*
+.env.*.local
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE / Editor
+.idea
+.vscode
+.fleet
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / Coverage
+coverage
+.nyc_output
+
+# Prisma (backend)
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Uploads / temp
+uploads
+tmp
+temp
+
+# Large video assets (frontend)
+frontend/app/assets/video/
