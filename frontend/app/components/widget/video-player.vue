@@ -1,7 +1,7 @@
 <template>
     <div ref="containerRef" class="av-video-player" @mouseenter="toggleIsShowOverlay" @mouseleave="toggleIsShowOverlay">
         <Transition name="v">
-            <div class="av-video-player__overlay">
+            <div v-show="isShowOverlay" class="av-video-player__overlay">
                 <div class="av-video-player__header">{{ name }}</div>
                 <div class="av-video-player__controls">
                     <div class="av-video-player__controls-row">
