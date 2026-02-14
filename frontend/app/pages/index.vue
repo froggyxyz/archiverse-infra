@@ -1,6 +1,18 @@
+<script setup lang="ts">
+const selectedFiles = ref<File[]>([])
+const fileInputError = ref('')
+</script>
+
 <template>
   <div>
     <h1>Hello World</h1>
+    <UiFileInput
+      v-model="selectedFiles"
+      label="Медиафайлы"
+      hint="Перетащите сюда или нажмите (до 10 файлов: аудио, видео, изображения)"
+      :error="fileInputError"
+      @error="fileInputError = $event"
+    />
     <UiButton href="/login">
       Вход
     </UiButton>
