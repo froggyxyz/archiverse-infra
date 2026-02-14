@@ -17,6 +17,7 @@
     <UiInput name="password" label="Password" placeholder="Enter your password" type="password" />
     <UiTextarea name="description" label="Description" placeholder="Enter your description" />
     <UiCheckbox name="checkbox" label="Checkbox" />
+    <WidgetVideoPlayer />
   </div>
 </template>
 
