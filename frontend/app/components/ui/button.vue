@@ -1,5 +1,5 @@
 <template>
-    <component :is="componentTag" :class="['av-btn', `av-btn--${width}`, `av-btn--${size}`]">
+    <component :is="componentTag" :class="['av-btn', `av-btn--${width}`, `av-btn--${size}`]" :disabled="disabled">
         <span class="av-btn__content">
             <slot />
         </span>
@@ -11,11 +11,13 @@ interface Props {
     href?: String;
     width?: 'fit' | 'full';
     size?: 'sm' | 'md' | 'lg';
-};
+    disabled?: boolean;
+}
 
 const props = withDefaults(defineProps<Props>(), {
     width: 'fit',
     size: 'md',
+    disabled: false,
 });
 
 const componentTag = computed<string>(() => props.href ? 'a' : 'button');

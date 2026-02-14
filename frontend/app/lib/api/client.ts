@@ -1,6 +1,8 @@
-import type { ApiClient, ApiError, ApiRequestOptions } from '~/types/api'
+import type { ApiClient, ApiClientHooks, ApiError, ApiRequestOptions } from '~/types/api'
 
-export const createApiClient = (baseUrl: string): ApiClient => {
+export const createApiClient = (baseUrl: string, hooks?: ApiClientHooks): ApiClient => {
+  let refreshPromise: Promise<boolean> | null = null
+
   const fetcher = $fetch.create({
     baseURL: baseUrl,
     headers: {
@@ -8,6 +10,13 @@ export const createApiClient = (baseUrl: string): ApiClient => {
       Accept: 'application/json',
     },
     credentials: 'include',
+    onRequest({ options }) {
+      const token = hooks?.getAccessToken?.()
+      if (token) {
+        options.headers = new Headers(options.headers)
+        options.headers.set('Authorization', `Bearer ${token}`)
+      }
+    },
     onResponseError({ response }) {
       const error: ApiError = {
         statusCode: response.status,
@@ -29,12 +38,29 @@ export const createApiClient = (baseUrl: string): ApiClient => {
     const headers = { ...options?.headers }
     const query = options?.params
 
-    return fetcher<T>(path, {
-      method,
-      ...(body !== undefined && { body }),
-      ...(Object.keys(headers).length > 0 && { headers }),
-      ...(query && { query }),
-    })
+    const doRequest = () =>
+      fetcher<T>(path, {
+        method,
+        ...(body !== undefined && { body }),
+        ...(Object.keys(headers).length > 0 && { headers }),
+        ...(query && { query }),
+      })
+
+    try {
+      return await doRequest()
+    } catch (e) {
+      const err = e as { statusCode?: number }
+      if (err.statusCode === 401 && hooks?.onUnauthorized) {
+        if (!refreshPromise) {
+          refreshPromise = hooks.onUnauthorized().finally(() => {
+            refreshPromise = null
+          })
+        }
+        const refreshed = await refreshPromise
+        if (refreshed) return doRequest()
+      }
+      throw e
+    }
   }
 
   return {
