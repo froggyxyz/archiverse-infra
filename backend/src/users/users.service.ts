@@ -33,7 +33,7 @@ export class UsersService {
       select: { id: true, username: true, avatarUrl: true, createdAt: true, updatedAt: true },
     })
     if (!user) throw new NotFoundException('User not found')
-    return user
+    return this.withPresignedAvatar(user)
   }
 
   async getByIdOrUsername(idOrUsername: string): Promise<PublicProfile> {
@@ -43,7 +43,7 @@ export class UsersService {
       select: { id: true, username: true, avatarUrl: true, createdAt: true, updatedAt: true },
     })
     if (!user) throw new NotFoundException('User not found')
-    return user
+    return this.withPresignedAvatar(user)
   }
 
   async updateProfile(
@@ -79,7 +79,7 @@ export class UsersService {
       data: updates,
       select: { id: true, username: true, avatarUrl: true, createdAt: true, updatedAt: true },
     })
-    return user
+    return this.withPresignedAvatar(user)
   }
 
   async setAvatar(
@@ -92,7 +92,22 @@ export class UsersService {
       data: { avatarUrl },
       select: { id: true, username: true, avatarUrl: true, createdAt: true, updatedAt: true },
     })
-    return user
+    return this.withPresignedAvatar(user)
+  }
+
+  async removeAvatar(userId: string): Promise<PublicProfile> {
+    await this.s3.deleteUserAvatars(userId)
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: null },
+      select: { id: true, username: true, avatarUrl: true, createdAt: true, updatedAt: true },
+    })
+    return this.withPresignedAvatar(user)
+  }
+
+  private async withPresignedAvatar(profile: PublicProfile): Promise<PublicProfile> {
+    const avatarUrl = await this.s3.getPresignedAvatarUrl(profile.avatarUrl)
+    return { ...profile, avatarUrl }
   }
 
   private looksLikeCuid(value: string): boolean {

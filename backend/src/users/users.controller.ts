@@ -3,6 +3,7 @@ import {
   Get,
   Patch,
   Post,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -59,6 +60,12 @@ export class UsersController {
       buffer: file.buffer,
       mimetype: file.mimetype,
     })
+  }
+
+  @Delete('me/avatar')
+  @UseGuards(JwtAuthGuard)
+  async removeAvatar(@CurrentUser() user: AuthUser): Promise<PublicProfile> {
+    return this.users.removeAvatar(user.id)
   }
 
   @Get(':idOrUsername')

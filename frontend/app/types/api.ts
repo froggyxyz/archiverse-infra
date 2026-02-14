@@ -18,6 +18,7 @@ export type ApiRequestOptions = {
 export type ApiClient = {
   get: <T>(url: string, options?: ApiRequestOptions) => Promise<T>
   post: <T>(url: string, body?: unknown, options?: ApiRequestOptions) => Promise<T>
+  postFormData: <T>(url: string, formData: FormData, options?: ApiRequestOptions) => Promise<T>
   put: <T>(url: string, body?: unknown, options?: ApiRequestOptions) => Promise<T>
   patch: <T>(url: string, body?: unknown, options?: ApiRequestOptions) => Promise<T>
   delete: <T>(url: string, options?: ApiRequestOptions) => Promise<T>

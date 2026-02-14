@@ -16,6 +16,10 @@ export const createApiClient = (baseUrl: string, hooks?: ApiClientHooks): ApiCli
         options.headers = new Headers(options.headers)
         options.headers.set('Authorization', `Bearer ${token}`)
       }
+      if (options.body instanceof FormData) {
+        options.headers = new Headers(options.headers)
+        options.headers.delete('Content-Type')
+      }
     },
     onResponseError({ response }) {
       const error: ApiError = {
@@ -63,11 +67,46 @@ export const createApiClient = (baseUrl: string, hooks?: ApiClientHooks): ApiCli
     }
   }
 
+  const postFormData = async <T>(
+    url: string,
+    formData: FormData,
+    options?: ApiRequestOptions
+  ): Promise<T> => {
+    const path = url.startsWith('/') ? url : `/${url}`
+    const headers: Record<string, string> = { ...options?.headers }
+    delete headers['Content-Type']
+
+    const doRequest = () =>
+      fetcher<T>(path, {
+        method: 'POST',
+        body: formData,
+        ...(Object.keys(headers).length > 0 && { headers }),
+        ...(options?.params && { query: options.params }),
+      })
+
+    try {
+      return await doRequest()
+    } catch (e) {
+      const err = e as { statusCode?: number }
+      if (err.statusCode === 401 && hooks?.onUnauthorized) {
+        if (!refreshPromise) {
+          refreshPromise = hooks.onUnauthorized().finally(() => {
+            refreshPromise = null
+          })
+        }
+        const refreshed = await refreshPromise
+        if (refreshed) return doRequest()
+      }
+      throw e
+    }
+  }
+
   return {
     get: <T>(url: string, options?: ApiRequestOptions) =>
       request<T>('GET', url, undefined, options),
     post: <T>(url: string, body?: unknown, options?: ApiRequestOptions) =>
       request<T>('POST', url, body, options),
+    postFormData,
     put: <T>(url: string, body?: unknown, options?: ApiRequestOptions) =>
       request<T>('PUT', url, body, options),
     patch: <T>(url: string, body?: unknown, options?: ApiRequestOptions) =>
