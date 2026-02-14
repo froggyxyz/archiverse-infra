@@ -22,3 +22,8 @@ export type ApiClient = {
   patch: <T>(url: string, body?: unknown, options?: ApiRequestOptions) => Promise<T>
   delete: <T>(url: string, options?: ApiRequestOptions) => Promise<T>
 }
+
+export type ApiClientHooks = {
+  getAccessToken?: () => string | null
+  onUnauthorized?: () => Promise<boolean>
+}
