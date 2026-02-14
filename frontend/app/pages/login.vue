@@ -55,7 +55,7 @@ watch(isAuthenticated, (auth) => {
       <p v-if="errorMessage" class="error">
         {{ errorMessage }}
       </p>
-      <UiButton type="submit" :disabled="isLoading">
+      <UiButton type="submit" width="full" size="lg" :disabled="isLoading">
         {{ isLoading ? 'Вход...' : 'Войти' }}
       </UiButton>
     </form>
