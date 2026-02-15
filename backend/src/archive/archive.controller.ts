@@ -46,58 +46,6 @@ export class ArchiveController {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
     }
     let body = Buffer.concat(chunks).toString('utf8')
-    body = body.replace(/^(segment_\d+\.ts)$/gm, `$1?token=${encodeURIComponent(token)}`)
-    res.setHeader('Content-Type', contentType ?? 'application/vnd.apple.mpegurl')
-    res.send(body)
-  }
-
-  @Get(':id/hls/:file')
-  async getHlsSegment(
-    @Param('id') id: string,
-    @Param('file') file: string,
-    @Query('token') token: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    this.verifyHlsToken(token, id)
-    const media = await this.archive.getMediaForHls(id, (this.jwt.decode(token) as { sub?: string })?.sub ?? '')
-    if (!media?.hlsPlaylistKey) throw new NotFoundException()
-    const dir = media.hlsPlaylistKey.replace(/\/playlist\.m3u8$/, '')
-    const key = `${dir}/${file}`
-    const { stream, contentType } = await this.s3.getObjectStream(key)
-    res.setHeader('Content-Type', contentType ?? 'video/MP2T')
-    ;(stream as NodeJS.ReadableStream).pipe(res)
-  }
-
-  private verifyHlsToken(token: string, mediaId: string): { userId: string } {
-    if (!token) throw new UnauthorizedException()
-    try {
-      const payload = this.jwt.verify(token, {
-        secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
-      }) as { sub?: string; mediaId?: string; purpose?: string }
-      if (payload.purpose !== 'hls' || payload.mediaId !== mediaId || !payload.sub) {
-        throw new UnauthorizedException()
-      }
-      return { userId: payload.sub }
-    } catch {
-      throw new UnauthorizedException()
-    }
-  }
-
-  @Get(':id/hls/playlist.m3u8')
-  async getHlsPlaylist(
-    @Param('id') id: string,
-    @Query('token') token: string,
-    @Res() res: Response,
-  ): Promise<void> {
-    const payload = this.verifyHlsToken(token, id)
-    const media = await this.archive.getMediaForHls(id, payload.userId)
-    if (!media?.hlsPlaylistKey) throw new NotFoundException()
-    const { stream, contentType } = await this.s3.getObjectStream(media.hlsPlaylistKey)
-    const chunks: Buffer[] = []
-    for await (const chunk of stream as AsyncIterable<Buffer>) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-    }
-    let body = Buffer.concat(chunks).toString('utf8')
     const tokenQ = `?token=${encodeURIComponent(token)}`
     body = body.replace(/^(segment_\d+\.ts)$/gm, (m) => m + tokenQ)
     res.setHeader('Content-Type', contentType ?? 'application/vnd.apple.mpegurl')
