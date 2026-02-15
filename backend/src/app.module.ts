@@ -9,6 +9,7 @@ import { S3Module } from './s3/s3.module'
 import { StorageModule } from './storage/storage.module'
 import { UsersModule } from './users/users.module'
 import { ArchiveModule } from './archive/archive.module'
+import { ChatsModule } from './chats/chats.module'
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ArchiveModule } from './archive/archive.module'
     StorageModule,
     UsersModule,
     ArchiveModule,
+    ChatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -19,8 +19,65 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
-  media        Media[]
+  refreshTokens   RefreshToken[]
+  media           Media[]
+  chatParticipants ChatParticipant[]
+  messagesSent    Message[]
+}
+
+model Chat {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id          String    @id @default(cuid())
+  chatId      String
+  userId      String
+  lastReadAt  DateTime? // непрочитанные = сообщения после lastReadAt
+  joinedAt    DateTime  @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  senderId  String
+  text      String?  // с сохранением переносов строк
+  createdAt DateTime @default(now())
+
+  chat       Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender     User            @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  attachments ChatAttachment[]
+}
+
+enum ChatAttachmentType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+model ChatAttachment {
+  id           String            @id @default(cuid())
+  messageId    String
+  type         ChatAttachmentType
+  s3Key        String
+  thumbnailKey String?           // опционально: превью для видео (от фронта)
+  mimeType     String
+  size         BigInt            // bytes
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
 }
 
 model Media {

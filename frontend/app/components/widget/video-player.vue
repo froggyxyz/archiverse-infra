@@ -129,7 +129,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { name: 'empty' });
 const videoRef = ref<HTMLVideoElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
-const isHls = computed(() => props.video.includes('.m3u8'));
+const isHls = computed(() => (props.video ?? '').includes('.m3u8'));
 let hlsInstance: InstanceType<typeof import('hls.js').default> | null = null;
 const isShowOverlay = ref<boolean>(false);
 const isLoading = ref<boolean>(true);

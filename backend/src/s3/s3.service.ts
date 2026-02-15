@@ -11,6 +11,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const AVATAR_KEY_PREFIX = 'avatars/'
+const CHAT_KEY_PREFIX = 'chat/'
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024 // 2 MB
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PRESIGNED_AVATAR_EXPIRES_IN = 3600 // 1 hour
@@ -75,13 +76,35 @@ export class S3Service {
     return Buffer.concat(chunks)
   }
 
-  /** Presigned GetObject URL для любого ключа в бакете (архив, аватар и т.д.). */
+  /** Presigned GetObject URL для любого ключа в бакете (архив, аватар, чат и т.д.). */
   async getPresignedUrl(key: string, expiresIn = PRESIGNED_ARCHIVE_EXPIRES_IN): Promise<string> {
     return getSignedUrl(
       this.client,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn },
     )
+  }
+
+  /** Presigned PUT URL для загрузки файла в чат (клиент грузит напрямую в S3). */
+  async getPresignedPutUrl(
+    key: string,
+    contentType: string,
+    expiresIn = PRESIGNED_ARCHIVE_EXPIRES_IN,
+  ): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+      }),
+      { expiresIn },
+    )
+  }
+
+  /** Префикс ключей для файлов чатов. */
+  getChatKeyPrefix(): string {
+    return CHAT_KEY_PREFIX
   }
 
   async getPresignedAvatarUrl(avatarUrl: string | null): Promise<string | null> {
