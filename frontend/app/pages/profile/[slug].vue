@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatSize } from '~/utils/format-size'
-import { ARCHIVE_STAGE_LABELS } from '~/types/archive'
+import { ARCHIVE_STAGE_LABELS, MEDIA_STATUS_LABELS } from '~/types/archive'
+import type { MediaListItem } from '~/types/archive'
 
 definePageMeta({
   auth: true,
@@ -100,6 +101,17 @@ const startArchiveUpload = async () => {
 
 const getStageLabel = (stage: string) =>
   ARCHIVE_STAGE_LABELS[stage as keyof typeof ARCHIVE_STAGE_LABELS] ?? stage
+
+const getItemStatusText = (item: MediaListItem) => {
+  const live = getItemProgress(item.id)
+  if (live) {
+    return `${getStageLabel(live.stage)}: ${Math.round(live.progress * 100)}%`
+  }
+  if (item.currentStage && item.stageProgress != null) {
+    return `${getStageLabel(item.currentStage)}: ${Math.round(item.stageProgress * 100)}%`
+  }
+  return MEDIA_STATUS_LABELS[item.status]
+}
 
 const openingUrl = ref(false)
 const openMedia = async (item: { id: string; type: string }) => {
@@ -283,13 +295,13 @@ watch(isOwnProfile, async (own) => {
               </div>
               <div class="profile-archive-grid__overlay">
                 <span class="profile-archive-grid__name">{{ item.filename }}</span>
-                <div
-                  v-if="getItemProgress(item.id) && item.status !== 'READY' && item.status !== 'FAILED'"
-                  class="profile-archive-grid__progress"
+                <span
+                  class="profile-archive-grid__status"
+                  :class="{ 'profile-archive-grid__status--failed': item.status === 'FAILED' }"
                 >
-                  {{ getStageLabel(getItemProgress(item.id)!.stage) }}: {{ Math.round(getItemProgress(item.id)!.progress * 100) }}%
-                </div>
-                <div v-else class="profile-archive-grid__actions">
+                  {{ getItemStatusText(item) }}
+                </span>
+                <div class="profile-archive-grid__actions">
                   <UiButton
                     v-if="item.status === 'READY' || item.status === 'PROCESSING'"
                     size="sm"
@@ -548,7 +560,7 @@ watch(isOwnProfile, async (own) => {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -606,10 +618,14 @@ watch(isOwnProfile, async (own) => {
   white-space: nowrap;
 }
 
-.profile-archive-grid__progress {
+.profile-archive-grid__status {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.9);
-  margin-top: 4px;
+  margin-top: 2px;
+}
+
+.profile-archive-grid__status--failed {
+  color: #f87171;
 }
 
 .profile-archive-grid__actions {
