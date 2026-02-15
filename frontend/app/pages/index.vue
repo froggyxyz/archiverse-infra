@@ -1,6 +1,11 @@
 <script setup lang="ts">
 const selectedFiles = ref<File[]>([])
 const fileInputError = ref('')
+const messageText = ref('')
+
+const onSendMessage = (text: string) => {
+  console.log('Send:', text)
+}
 </script>
 
 <template>
@@ -38,6 +43,12 @@ const fileInputError = ref('')
     <UiInput name="password" label="Password" placeholder="Enter your password" type="password" />
     <UiTextarea name="description" label="Description" placeholder="Enter your description" />
     <UiCheckbox name="checkbox" label="Checkbox" />
-    <WidgetVideoPlayer />
+    <div style="max-width: 400px; margin-top: 16px;">
+      <UiChatMessageInput
+        v-model="messageText"
+        placeholder="Сообщение…"
+        @send="onSendMessage"
+      />
+    </div>
   </div>
 </template>
