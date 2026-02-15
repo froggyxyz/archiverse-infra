@@ -154,14 +154,33 @@ export class S3Service {
   }
 
   async uploadBuffer(key: string, body: Buffer, contentType: string): Promise<void> {
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-      }),
-    )
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      )
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      const isXmlParseError =
+        msg.includes('Deserialization error') ||
+        msg.includes('Expected closing tag') ||
+        /instead of closing tag/.test(msg)
+      if (isXmlParseError) {
+        const statusCode = (err as { $response?: { statusCode?: number } })?.$response?.statusCode
+        const hint =
+          'S3 endpoint returned non-XML (likely HTML error page). ' +
+          'Check S3_ENDPOINT, S3_BUCKET and credentials; ensure endpoint is the real S3/MinIO URL.'
+        throw new Error(
+          statusCode != null ? `${hint} HTTP ${statusCode}.` : `${hint} Original: ${msg}`,
+          { cause: err },
+        )
+      }
+      throw err
+    }
   }
 
   async uploadAvatar(

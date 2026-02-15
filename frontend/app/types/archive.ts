@@ -20,12 +20,12 @@ export const ARCHIVE_STAGE_LABELS: Record<ArchiveMediaStage, string> = {
   [ARCHIVE_STAGES.FAILED]: 'Ошибка',
 }
 
-export type MediaStatus = 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED'
+export type MediaStatus = 'UPLOADING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
 export const MEDIA_STATUS_LABELS: Record<MediaStatus, string> = {
   UPLOADING: 'Загрузка',
   PROCESSING: 'Обработка',
-  READY: 'Готово',
+  COMPLETED: 'Готово',
   FAILED: 'Ошибка',
 }
 

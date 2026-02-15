@@ -59,19 +59,21 @@ export const useArchive = () => {
       auth: { token },
       query: { token },
     })
-    archiveSocket.on('archive:progress', (data: ArchiveProgressPayload) => {
+    archiveSocket.on('archive:progress', async (data: ArchiveProgressPayload) => {
       progressMap.value = {
         ...progressMap.value,
         [data.mediaId]: { stage: data.stage, progress: data.progress },
       }
       if (data.stage !== ARCHIVE_STAGES.UPLOADING) {
-        fetchArchive()
-      }
-      if (data.stage === ARCHIVE_STAGES.COMPLETED || data.stage === ARCHIVE_STAGES.FAILED) {
-        fetchStorage()
-        const next = { ...progressMap.value }
-        delete next[data.mediaId]
-        progressMap.value = next
+        if (data.stage === ARCHIVE_STAGES.COMPLETED || data.stage === ARCHIVE_STAGES.FAILED) {
+          await fetchArchive()
+          await fetchStorage()
+          const next = { ...progressMap.value }
+          delete next[data.mediaId]
+          progressMap.value = next
+        } else {
+          fetchArchive()
+        }
       }
     })
     archiveSocket.on('connect', () => {

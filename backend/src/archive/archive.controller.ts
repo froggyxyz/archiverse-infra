@@ -40,7 +40,17 @@ export class ArchiveController {
     const payload = this.verifyHlsToken(token, id)
     const media = await this.archive.getMediaForHls(id, payload.userId)
     if (!media?.hlsPlaylistKey) throw new NotFoundException()
-    const { stream, contentType } = await this.s3.getObjectStream(media.hlsPlaylistKey)
+    let stream: NodeJS.ReadableStream
+    let contentType: string | undefined
+    try {
+      const result = await this.s3.getObjectStream(media.hlsPlaylistKey)
+      stream = result.stream
+      contentType = result.contentType
+    } catch (err: unknown) {
+      const code = (err as { Code?: string })?.Code
+      if (code === 'NoSuchKey') throw new NotFoundException()
+      throw err
+    }
     const chunks: Buffer[] = []
     for await (const chunk of stream as AsyncIterable<Buffer>) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
@@ -48,25 +58,52 @@ export class ArchiveController {
     let body = Buffer.concat(chunks).toString('utf8')
     const tokenQ = `?token=${encodeURIComponent(token)}`
     body = body.replace(/^(segment_\d+\.ts)$/gm, (m) => m + tokenQ)
+    body = body.replace(/^(stream_\d+\.m3u8)$/gm, (m) => m + tokenQ)
     res.setHeader('Content-Type', contentType ?? 'application/vnd.apple.mpegurl')
     res.send(body)
   }
 
-  @Get(':id/hls/:file')
+  /** Один сегмент или вариант-плейлист (stream_0.m3u8, stream_0/segment_000.ts и т.д.). */
+  @Get(':id/hls/*path')
   async getHlsSegment(
     @Param('id') id: string,
-    @Param('file') file: string,
+    @Param('path') path: string | string[],
     @Query('token') token: string,
     @Res() res: Response,
   ): Promise<void> {
+    const pathStr = typeof path === 'string' ? path : Array.isArray(path) ? path.join('/') : ''
     const payload = this.verifyHlsToken(token, id)
     const media = await this.archive.getMediaForHls(id, payload.userId)
     if (!media?.hlsPlaylistKey) throw new NotFoundException()
     const dir = media.hlsPlaylistKey.replace(/\/playlist\.m3u8$/, '')
-    const key = `${dir}/${file}`
-    const { stream, contentType } = await this.s3.getObjectStream(key)
-    res.setHeader('Content-Type', contentType ?? 'video/MP2T')
-    ;(stream as NodeJS.ReadableStream).pipe(res)
+    const key = pathStr ? `${dir}/${pathStr}` : dir
+    let stream: NodeJS.ReadableStream
+    let contentType: string | undefined
+    try {
+      const result = await this.s3.getObjectStream(key)
+      stream = result.stream
+      contentType = result.contentType
+    } catch (err: unknown) {
+      const code = (err as { Code?: string })?.Code
+      if (code === 'NoSuchKey') throw new NotFoundException()
+      throw err
+    }
+    const isM3u8 = pathStr.endsWith('.m3u8')
+    res.setHeader('Content-Type', isM3u8 ? 'application/vnd.apple.mpegurl' : 'video/MP2T')
+    if (isM3u8) {
+      const chunks: Buffer[] = []
+      for await (const chunk of stream as AsyncIterable<Buffer>) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      }
+      let body = Buffer.concat(chunks).toString('utf8')
+      const tokenQ = `?token=${encodeURIComponent(token)}`
+      const streamMatch = pathStr.match(/^stream_(\d+)\.m3u8$/)
+      const segmentPrefix = streamMatch ? `stream_${streamMatch[1]}/` : ''
+      body = body.replace(/^(segment_\d+\.ts)$/gm, (m) => segmentPrefix + m + tokenQ)
+      res.send(body)
+    } else {
+      ;(stream as NodeJS.ReadableStream).pipe(res)
+    }
   }
 
   private verifyHlsToken(token: string, mediaId: string): { userId: string } {

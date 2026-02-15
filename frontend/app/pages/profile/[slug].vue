@@ -113,19 +113,20 @@ const getItemStatusText = (item: MediaListItem) => {
   return MEDIA_STATUS_LABELS[item.status]
 }
 
-const openingUrl = ref(false)
-const openMedia = async (item: { id: string; type: string }) => {
-  if (item.type === 'VIDEO') {
-    await navigateTo({ path: '/watch', query: { id: item.id } })
-    return
-  }
-  openingUrl.value = true
-  try {
-    const url = await getMediaViewUrl(item.id)
-    if (url) window.open(url, '_blank', 'noopener')
-  } finally {
-    openingUrl.value = false
-  }
+const mediaViewerOpen = ref(false)
+const mediaViewerIndex = ref(0)
+
+const isViewableStatus = (s: string) => s === 'COMPLETED' || s === 'PROCESSING'
+
+const viewableItems = computed(() =>
+  (archiveList.value?.items ?? []).filter((i) => isViewableStatus(i.status))
+)
+
+const openMediaViewer = (item: MediaListItem, index: number) => {
+  if (!isViewableStatus(item.status)) return
+  const idx = viewableItems.value.findIndex((i) => i.id === item.id)
+  mediaViewerIndex.value = idx >= 0 ? idx : 0
+  mediaViewerOpen.value = true
 }
 
 watch(isOwnProfile, async (own) => {
@@ -256,9 +257,11 @@ watch(isOwnProfile, async (own) => {
           </p>
           <ul v-else class="profile-archive-grid__list">
             <li
-              v-for="item in archiveList.items"
+              v-for="(item, index) in archiveList.items"
               :key="item.id"
               class="profile-archive-grid__cell"
+              :class="{ 'profile-archive-grid__cell--clickable': isViewableStatus(item.status) }"
+              @click="openMediaViewer(item, index)"
             >
               <div class="profile-archive-grid__preview">
                 <img
@@ -294,22 +297,14 @@ watch(isOwnProfile, async (own) => {
                 </div>
               </div>
               <div class="profile-archive-grid__overlay">
-                <span class="profile-archive-grid__name">{{ item.filename }}</span>
                 <span
+                  v-if="item.status !== 'COMPLETED'"
                   class="profile-archive-grid__status"
                   :class="{ 'profile-archive-grid__status--failed': item.status === 'FAILED' }"
                 >
                   {{ getItemStatusText(item) }}
                 </span>
                 <div class="profile-archive-grid__actions">
-                  <UiButton
-                    v-if="item.status === 'READY' || item.status === 'PROCESSING'"
-                    size="sm"
-                    :disabled="openingUrl"
-                    @click.stop="openMedia(item)"
-                  >
-                    Открыть
-                  </UiButton>
                   <UiButton
                     size="sm"
                     @click.stop="deleteMedia(item.id)"
@@ -321,6 +316,13 @@ watch(isOwnProfile, async (own) => {
             </li>
           </ul>
         </section>
+
+        <MediaViewerModal
+          v-model="mediaViewerOpen"
+          :items="viewableItems"
+          :initial-index="mediaViewerIndex"
+          :get-view-url="getMediaViewUrl"
+        />
       </template>
     </div>
   </div>
@@ -561,15 +563,17 @@ watch(isOwnProfile, async (own) => {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
 }
 
 .profile-archive-grid__cell {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 8px;
   overflow: hidden;
   background-color: var(--bg-secondary);
+}
+
+.profile-archive-grid__cell--clickable {
+  cursor: pointer;
 }
 
 .profile-archive-grid__preview {
@@ -608,6 +612,11 @@ watch(isOwnProfile, async (own) => {
   justify-content: flex-end;
   padding: 8px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent 60%);
+  pointer-events: none;
+}
+
+.profile-archive-grid__overlay .profile-archive-grid__actions {
+  pointer-events: auto;
 }
 
 .profile-archive-grid__name {

@@ -147,6 +147,7 @@ export class TusService implements OnModuleInit {
               userId,
               s3Key,
             } satisfies ArchiveJobPayload)
+            this.logger.log(`archive job queued mediaId=${media.id} jobId=${bullJob.id}`)
             await this.archive.updateMediaProgress(media.id, { jobId: bullJob.id })
           } catch (err) {
             this.logger.error(
