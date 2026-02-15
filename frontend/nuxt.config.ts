@@ -18,7 +18,6 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/icon',
     '@nuxt/image',
-    'nuxt-socket-io'
   ],
 
   fonts: {

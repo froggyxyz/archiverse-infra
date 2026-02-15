@@ -14,6 +14,7 @@ const AVATAR_KEY_PREFIX = 'avatars/'
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024 // 2 MB
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PRESIGNED_AVATAR_EXPIRES_IN = 3600 // 1 hour
+const PRESIGNED_ARCHIVE_EXPIRES_IN = 3600 // 1 hour
 
 @Injectable()
 export class S3Service {
@@ -44,6 +45,45 @@ export class S3Service {
         : `https://${this.bucket}.s3.${region}.amazonaws.com/${AVATAR_KEY_PREFIX}`
   }
 
+  /** Стрим объекта из S3 (для HLS сегментов и т.д.). */
+  async getObjectStream(key: string): Promise<{
+    stream: NodeJS.ReadableStream
+    contentType?: string
+  }> {
+    const res = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    )
+    const body = res.Body as NodeJS.ReadableStream | undefined
+    if (!body) throw new Error('Empty S3 body')
+    return {
+      stream: body,
+      contentType: res.ContentType ?? undefined,
+    }
+  }
+
+  /** Скачать объект из S3 в Buffer. */
+  async getObjectBuffer(key: string): Promise<Buffer> {
+    const res = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    )
+    const body = res.Body
+    if (!body) return Buffer.alloc(0)
+    const chunks: Uint8Array[] = []
+    for await (const chunk of body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk)
+    }
+    return Buffer.concat(chunks)
+  }
+
+  /** Presigned GetObject URL для любого ключа в бакете (архив, аватар и т.д.). */
+  async getPresignedUrl(key: string, expiresIn = PRESIGNED_ARCHIVE_EXPIRES_IN): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      { expiresIn },
+    )
+  }
+
   async getPresignedAvatarUrl(avatarUrl: string | null): Promise<string | null> {
     if (!avatarUrl || !this.hasCredentials) return avatarUrl
     const key = this.extractAvatarKeyFromUrl(avatarUrl)
@@ -60,6 +100,42 @@ export class S3Service {
     const match = url.includes('/avatars/') && url.split('/avatars/').pop()?.split('?')[0]?.trim()
     if (!match) return null
     return `${AVATAR_KEY_PREFIX}${match}`
+  }
+
+  /** Удалить один объект по ключу. */
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: { Objects: [{ Key: key }] },
+      }),
+    )
+  }
+
+  /** Удалить все объекты с заданным префиксом (пагинация по 1000). */
+  async deleteObjectsByPrefix(prefix: string): Promise<void> {
+    const prefixNorm = prefix.endsWith('/') ? prefix : `${prefix}/`
+    let continuationToken: string | undefined
+    do {
+      const list = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefixNorm,
+          MaxKeys: 1000,
+          ContinuationToken: continuationToken,
+        }),
+      )
+      const keys = (list.Contents ?? []).map((o) => o.Key).filter((k): k is string => !!k)
+      if (keys.length > 0) {
+        await this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: keys.map((Key) => ({ Key })) },
+          }),
+        )
+      }
+      continuationToken = list.IsTruncated ? list.NextContinuationToken : undefined
+    } while (continuationToken)
   }
 
   async deleteUserAvatars(userId: string): Promise<void> {

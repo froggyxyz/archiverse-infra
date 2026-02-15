@@ -31,6 +31,8 @@ model Media {
   mimeType      String
   type          MediaType
   s3Key         String?
+  thumbnailKey  String?  // превью-кадр для видео (JPEG в S3)
+  hlsPlaylistKey String?  // HLS: ключ playlist.m3u8 в S3 (сегменты рядом)
   status        MediaStatus @default(UPLOADING)
   currentStage  String?  // for frontend: validating, compressing, transcoding, etc.
   stageProgress Float?   // 0..1 within current stage

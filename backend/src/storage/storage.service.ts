@@ -46,9 +46,11 @@ export class StorageService {
 
   async subtractUsage(userId: string, sizeBytes: number): Promise<void> {
     if (sizeBytes <= 0) return
+    const { usedBytes } = await this.getStorage(userId)
+    const newUsed = Math.max(0, usedBytes - sizeBytes)
     await this.prisma.user.update({
       where: { id: userId },
-      data: { storageUsed: { decrement: BigInt(sizeBytes) } },
+      data: { storageUsed: BigInt(newUsed) },
     })
   }
 }

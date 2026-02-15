@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq'
 import { JwtModule } from '@nestjs/jwt'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ArchiveController } from './archive.controller'
+import { TusController } from './tus.controller'
 import { ArchiveService } from './archive.service'
 import { TusService } from './tus.service'
 import { ArchiveProcessor } from './archive.processor'
@@ -22,7 +23,7 @@ import { ARCHIVE_QUEUE_NAME } from './archive.processor'
       inject: [ConfigService],
     }),
   ],
-  controllers: [ArchiveController],
+  controllers: [ArchiveController, TusController],
   providers: [
     ArchiveService,
     TusService,
