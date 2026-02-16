@@ -5,6 +5,7 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets'
 import { Server } from 'socket.io'
 import { JwtService } from '@nestjs/jwt'
@@ -70,7 +71,7 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('message:send')
   async handleMessageSend(
     @MessageBody() body: unknown,
-    client: Socket,
+    @ConnectedSocket() client: Socket,
   ): Promise<void> {
     const userId = (client.data as { userId?: string }).userId
     if (!userId) return
