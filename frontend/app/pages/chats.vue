@@ -65,7 +65,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="chats-page">
-    <aside class="chats-page__sidebar">
+    <div class="chats-page__viewport">
+      <div
+        class="chats-page__track"
+        :class="{ 'chats-page__track--chat': !!selectedChatId }"
+      >
+        <aside class="chats-page__sidebar">
       <h1 class="chats-page__title">Чаты</h1>
       <div v-if="isLoadingChats" class="chats-page__loading">Загрузка…</div>
       <ul v-else-if="chatList?.length" class="chats-page__list">
@@ -100,9 +105,9 @@ onBeforeUnmount(() => {
         </li>
       </ul>
       <p v-else class="chats-page__empty">Нет чатов</p>
-    </aside>
+        </aside>
 
-    <main class="chats-page__main">
+        <main class="chats-page__main">
       <template v-if="selectedChat">
         <WidgetChatWindow
           :user-name="selectedChat.otherUser.username"
@@ -111,6 +116,7 @@ onBeforeUnmount(() => {
           :messages="messages"
           :disabled="isLoadingMessages"
           show-close-button
+          :show-back-button="!!selectedChatId"
           @send="onSend"
           @close="selectedChatId = null"
         />
@@ -118,15 +124,31 @@ onBeforeUnmount(() => {
       <div v-else class="chats-page__placeholder">
         <p>Выберите чат</p>
       </div>
-    </main>
+        </main>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .chats-page {
   display: flex;
-  min-height: 100vh;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
+}
+
+.chats-page__viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chats-page__track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.25s ease-out;
 }
 
 .chats-page__sidebar {
@@ -274,5 +296,35 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 12px;
   color: var(--text-secondary);
+}
+
+@media (max-width: 1023px) {
+  .chats-page__track {
+    width: 200%;
+  }
+
+  .chats-page__track--chat {
+    transform: translateX(-50%);
+  }
+
+  .chats-page__sidebar {
+    width: 50%;
+    min-width: 50%;
+  }
+
+  .chats-page__main {
+    width: 50%;
+    min-width: 50%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chats-page__viewport {
+    overflow: visible;
+  }
+
+  .chats-page__track--chat {
+    transform: none;
+  }
 }
 </style>

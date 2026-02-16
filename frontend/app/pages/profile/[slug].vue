@@ -153,7 +153,8 @@ watch(isOwnProfile, async (own) => {
 
 <template>
   <div class="profile-page">
-    <div v-if="pending" class="profile-page__loading">
+    <div class="profile-page__scroll">
+      <div v-if="pending" class="profile-page__loading">
       Загрузка...
     </div>
     <div v-else-if="error" class="profile-page__error">
@@ -349,12 +350,23 @@ watch(isOwnProfile, async (own) => {
         />
       </template>
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .profile-page {
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.profile-page__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 2rem;
   display: flex;
   flex-direction: column;

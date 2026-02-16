@@ -1,6 +1,15 @@
 <template>
     <div class="av-chat-window">
         <header class="av-chat-window__header">
+            <button
+                v-if="showBackButton"
+                type="button"
+                class="av-chat-window__back av-chat-window__nav-btn"
+                aria-label="Назад"
+                @click="emit('close')"
+            >
+                <Icon name="mdi:chevron-left" class="av-chat-window__back-icon" />
+            </button>
             <NuxtLink
                 v-if="userSlug"
                 :to="`/profile/${encodeURIComponent(userSlug)}`"
@@ -32,7 +41,7 @@
             <button
                 v-if="showCloseButton"
                 type="button"
-                class="av-chat-window__close"
+                class="av-chat-window__close av-chat-window__nav-btn av-chat-window__nav-btn--desktop"
                 aria-label="Закрыть чат"
                 @click="emit('close')"
             >
@@ -73,6 +82,7 @@ interface Props {
     inputPlaceholder?: string
     disabled?: boolean
     showCloseButton?: boolean
+    showBackButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -80,6 +90,7 @@ const props = withDefaults(defineProps<Props>(), {
     inputPlaceholder: 'Сообщение…',
     disabled: false,
     showCloseButton: false,
+    showBackButton: false,
 })
 
 const emit = defineEmits<{ send: [text: string]; close: [] }>()
@@ -111,7 +122,6 @@ onMounted(scrollToBottom)
     width: 100%;
     max-width: 420px;
     height: 560px;
-    border-radius: 8px;
     border: 1px solid var(--bg-secondary);
     background-color: var(--bg-color);
     overflow: hidden;
@@ -142,8 +152,30 @@ onMounted(scrollToBottom)
     background: rgba(255, 255, 255, 0.06);
 }
 
+.av-chat-window__back {
+    flex-shrink: 0;
+    padding: 4px;
+    margin: -4px 4px -4px -4px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.av-chat-window__back:hover {
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.av-chat-window__back-icon {
+    font-size: 28px;
+}
+
 .av-chat-window__close {
     margin-left: auto;
+    align-items: center;
+    justify-content: center;
     padding: 4px;
     border: none;
     background: none;
@@ -159,6 +191,24 @@ onMounted(scrollToBottom)
 
 .av-chat-window__close-icon {
     font-size: 24px;
+}
+
+.av-chat-window__nav-btn {
+    display: flex;
+}
+
+.av-chat-window__nav-btn--desktop {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .av-chat-window__nav-btn {
+        display: none;
+    }
+
+    .av-chat-window__nav-btn--desktop {
+        display: flex;
+    }
 }
 
 .av-chat-window__avatar {

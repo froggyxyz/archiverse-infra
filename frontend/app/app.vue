@@ -1,6 +1,8 @@
 <template>
   <ProvidersAlertsProvider>
-    <NuxtPage />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </ProvidersAlertsProvider>
 </template>
 
