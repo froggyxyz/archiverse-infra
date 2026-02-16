@@ -15,6 +15,9 @@ const { user, logout } = useAuth()
     <UiButton v-if="user" :href="`/profile/${user.username}`">
       Мой профиль
     </UiButton>
+    <UiButton v-if="user" href="/chats">
+      Чаты
+    </UiButton>
     <UiButton @click="logout()">
       Выйти
     </UiButton>

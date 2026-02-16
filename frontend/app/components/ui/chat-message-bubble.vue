@@ -9,6 +9,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatMessageTime } from '~/utils/format-date'
+
 interface Props {
     text: string
     isOwn?: boolean
@@ -26,11 +28,9 @@ const isoTime = computed(() => {
     return d.toISOString()
 })
 
-const formattedTime = computed(() => {
-    if (!props.createdAt) return ''
-    const d = typeof props.createdAt === 'string' ? new Date(props.createdAt) : props.createdAt
-    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-})
+const formattedTime = computed(() =>
+    props.createdAt ? formatMessageTime(props.createdAt) : ''
+)
 </script>
 
 <style scoped>

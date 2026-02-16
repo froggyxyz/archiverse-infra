@@ -40,6 +40,20 @@ const isOwnProfile = computed(
   () => user.value && profile.value && (user.value.id === profile.value.id || user.value.username === profile.value.username)
 )
 
+const isStartingChat = ref(false)
+const startChat = async () => {
+  if (!profile.value || isOwnProfile.value || isStartingChat.value) return
+  isStartingChat.value = true
+  try {
+    const { chatId } = await useApiEndpoints().chats.getOrCreateDirect(profile.value.id)
+    await navigateTo({ path: '/chats', query: { chat: chatId } })
+  } catch (e) {
+    addError((e as Error)?.message ?? 'Не удалось начать чат')
+  } finally {
+    isStartingChat.value = false
+  }
+}
+
 const fileInput = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
 const selectedFiles = ref<File[]>([])
@@ -179,6 +193,16 @@ watch(isOwnProfile, async (own) => {
       <h1 class="profile-page__username">
         {{ profile.username }}
       </h1>
+
+      <UiButton
+        v-if="!isOwnProfile"
+        class="profile-page__chat-btn"
+        :disabled="isStartingChat"
+        @click="startChat"
+      >
+        <Icon name="mdi:message-outline" />
+        {{ isStartingChat ? 'Загрузка…' : 'Написать' }}
+      </UiButton>
 
       <template v-if="isOwnProfile">
         <section v-if="storage" class="profile-archive-storage">
@@ -422,6 +446,10 @@ watch(isOwnProfile, async (own) => {
 .profile-page__username {
   font-size: 1.75rem;
   font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.profile-page__chat-btn {
   margin-bottom: 1.5rem;
 }
 

@@ -1,16 +1,43 @@
 <template>
     <div class="av-chat-window">
         <header class="av-chat-window__header">
-            <img
-                v-if="avatarUrl"
-                :src="avatarUrl"
-                :alt="userName"
-                class="av-chat-window__avatar"
+            <NuxtLink
+                v-if="userSlug"
+                :to="`/profile/${encodeURIComponent(userSlug)}`"
+                class="av-chat-window__user-link"
             >
-            <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
-                <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
-            </div>
-            <span class="av-chat-window__name">{{ userName }}</span>
+                <img
+                    v-if="avatarUrl"
+                    :src="avatarUrl"
+                    :alt="userName"
+                    class="av-chat-window__avatar"
+                >
+                <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
+                    <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
+                </div>
+                <span class="av-chat-window__name">{{ userName }}</span>
+            </NuxtLink>
+            <template v-else>
+                <img
+                    v-if="avatarUrl"
+                    :src="avatarUrl"
+                    :alt="userName"
+                    class="av-chat-window__avatar"
+                >
+                <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
+                    <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
+                </div>
+                <span class="av-chat-window__name">{{ userName }}</span>
+            </template>
+            <button
+                v-if="showCloseButton"
+                type="button"
+                class="av-chat-window__close"
+                aria-label="Закрыть чат"
+                @click="emit('close')"
+            >
+                <Icon name="mdi:close" class="av-chat-window__close-icon" />
+            </button>
         </header>
 
         <div ref="messagesRef" class="av-chat-window__messages">
@@ -41,18 +68,21 @@ import type { ChatWindowMessage } from '~/types/chat'
 interface Props {
     userName: string
     avatarUrl?: string | null
+    userSlug?: string | null
     messages?: ChatWindowMessage[]
     inputPlaceholder?: string
     disabled?: boolean
+    showCloseButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
     messages: () => [],
     inputPlaceholder: 'Сообщение…',
     disabled: false,
+    showCloseButton: false,
 })
 
-const emit = defineEmits<{ send: [text: string] }>()
+const emit = defineEmits<{ send: [text: string]; close: [] }>()
 
 const inputText = ref('')
 const messagesRef = ref<HTMLElement | null>(null)
@@ -95,6 +125,40 @@ onMounted(scrollToBottom)
     padding: 12px 16px;
     border-bottom: 1px solid var(--bg-secondary);
     background-color: var(--bg-secondary);
+}
+
+.av-chat-window__user-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 6px;
+    padding: 4px 0;
+    margin: -4px 0;
+}
+
+.av-chat-window__user-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.av-chat-window__close {
+    margin-left: auto;
+    padding: 4px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.av-chat-window__close:hover {
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.av-chat-window__close-icon {
+    font-size: 24px;
 }
 
 .av-chat-window__avatar {
