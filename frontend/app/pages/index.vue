@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import type { ChatWindowMessage } from '~/types/chat'
+import type { RoomPlaylistItem } from '~/types/room'
 
 const selectedFiles = ref<File[]>([])
+
+const roomPlaylistExample: RoomPlaylistItem[] = [
+  { id: '1', title: 'Sunset timelapse.mp4', duration: '2:34', thumbnailUrl: null },
+  { id: '2', title: 'Лекция по Vue 3', duration: '1:15:22', thumbnailUrl: null },
+  { id: '3', title: 'Музыкальный клип', duration: '4:12', thumbnailUrl: null },
+]
 const fileInputError = ref('')
 
 const chatMessages = ref<ChatWindowMessage[]>([
@@ -68,6 +75,10 @@ const onChatSend = (text: string) => {
     <UiInput name="password" label="Password" placeholder="Enter your password" type="password" />
     <UiTextarea name="description" label="Description" placeholder="Enter your description" />
     <UiCheckbox name="checkbox" label="Checkbox" />
+    <div style="margin-top: 24px; max-width: 640px;">
+      <h2 style="font-size: 18px; margin-bottom: 16px;">Плейлист комнаты</h2>
+      <RoomPlaylist :items="roomPlaylistExample" />
+    </div>
     <div style="margin-top: 24px;">
       <h2 style="font-size: 18px; margin-bottom: 16px;">Чат</h2>
       <WidgetChatWindow
