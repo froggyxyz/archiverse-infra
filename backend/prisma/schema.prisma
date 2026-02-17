@@ -19,10 +19,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens   RefreshToken[]
-  media           Media[]
+  refreshTokens     RefreshToken[]
+  media             Media[]
   chatParticipants ChatParticipant[]
-  messagesSent    Message[]
+  messagesSent     Message[]
+  roomsCreated          Room[]
+  roomParticipants      RoomParticipant[]
+  roomChatMessages      RoomChatMessage[]
+  roomPlaylistItemsAdded RoomPlaylistItem[]
 }
 
 model Chat {
@@ -97,7 +101,62 @@ model Media {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomPlaylistItems RoomPlaylistItem[]
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  inviteCode  String   @unique // короткий код для ссылки приглашения
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator   User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  participants RoomParticipant[]
+  playlistItems RoomPlaylistItem[]
+  chatMessages  RoomChatMessage[]
+}
+
+model RoomParticipant {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+model RoomPlaylistItem {
+  id        String   @id @default(cuid())
+  roomId    String
+  mediaId   String
+  order     Int      // порядок в плейлисте
+  addedById String
+  createdAt DateTime @default(now())
+
+  room    Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  media   Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  addedBy User  @relation(fields: [addedById], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+}
+
+model RoomChatMessage {
+  id        String   @id @default(cuid())
+  roomId    String
+  senderId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
 }
 
 enum MediaType {

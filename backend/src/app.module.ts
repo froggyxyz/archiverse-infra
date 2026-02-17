@@ -10,6 +10,7 @@ import { StorageModule } from './storage/storage.module'
 import { UsersModule } from './users/users.module'
 import { ArchiveModule } from './archive/archive.module'
 import { ChatsModule } from './chats/chats.module'
+import { RoomsModule } from './rooms/rooms.module'
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ChatsModule } from './chats/chats.module'
     UsersModule,
     ArchiveModule,
     ChatsModule,
+    RoomsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
