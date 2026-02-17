@@ -18,6 +18,9 @@ const { user, logout } = useAuth()
     <UiButton v-if="user" href="/chats">
       Чаты
     </UiButton>
+    <UiButton v-if="user" href="/rooms/demo">
+      Комната
+    </UiButton>
     <UiButton @click="logout()">
       Выйти
     </UiButton>

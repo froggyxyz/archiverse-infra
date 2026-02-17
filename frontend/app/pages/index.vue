@@ -59,6 +59,9 @@ const onChatSend = (text: string) => {
     <UiButton href="/dashboard">
       Dashboard
     </UiButton>
+    <UiButton href="/rooms/demo">
+      Комната
+    </UiButton>
     <UiButton href="/">
       Click me
     </UiButton>
