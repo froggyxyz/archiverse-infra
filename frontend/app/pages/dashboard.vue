@@ -4,6 +4,7 @@ definePageMeta({
 })
 
 const { user, logout } = useAuth()
+const { createAndGo } = useCreateRoom()
 </script>
 
 <template>
@@ -18,7 +19,7 @@ const { user, logout } = useAuth()
     <UiButton v-if="user" href="/chats">
       Чаты
     </UiButton>
-    <UiButton v-if="user" href="/rooms/demo">
+    <UiButton v-if="user" @click="createAndGo">
       Комната
     </UiButton>
     <UiButton @click="logout()">

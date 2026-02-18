@@ -10,6 +10,15 @@
                 <Icon name="mdi:message-outline" class="app-header__chats-icon" />
                 <span class="app-header__chats-text">Чаты</span>
             </NuxtLink>
+            <button
+                v-if="user"
+                type="button"
+                class="app-header__room-btn"
+                @click="createAndGo"
+            >
+                <Icon name="mdi:video-outline" class="app-header__room-icon" />
+                <span class="app-header__room-text">Комната</span>
+            </button>
             <NuxtLink
                 v-if="user"
                 :to="`/profile/${encodeURIComponent(user.username)}`"
@@ -38,6 +47,7 @@
 
 <script setup lang="ts">
 const { user } = useAuthTokens()
+const { createAndGo } = useCreateRoom()
 const profile = ref<{ avatarUrl: string | null } | null>(null)
 
 watch(
@@ -121,6 +131,38 @@ watch(
 
 .app-header__chats-text {
     display: inline;
+}
+
+.app-header__room-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.app-header__room-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.app-header__room-icon {
+    font-size: 20px;
+}
+
+.app-header__room-text {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .app-header__room-text {
+        display: inline;
+    }
 }
 
 .app-header__avatar-link {

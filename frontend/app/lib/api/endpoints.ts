@@ -3,6 +3,7 @@ import { createAuthEndpoints } from './auth-endpoints'
 import { createUsersEndpoints } from './users-endpoints'
 import { createArchiveEndpoints } from './archive-endpoints'
 import { createChatsEndpoints } from './chats-endpoints'
+import { createRoomsEndpoints } from './rooms-endpoints'
 
 export const createHealthApi = (api: ApiClient) => ({
   check: () => api.get<string>('/'),
@@ -14,4 +15,5 @@ export const createApiEndpoints = (api: ApiClient) => ({
   users: createUsersEndpoints(api),
   archive: createArchiveEndpoints(api),
   chats: createChatsEndpoints(api),
+  rooms: createRoomsEndpoints(api),
 })

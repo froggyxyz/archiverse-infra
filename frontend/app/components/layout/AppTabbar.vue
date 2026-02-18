@@ -17,6 +17,15 @@
             <Icon name="mdi:message-outline" class="app-tabbar__icon" />
             <span class="app-tabbar__label">Чаты</span>
         </NuxtLink>
+        <button
+            v-if="user"
+            type="button"
+            class="app-tabbar__item"
+            @click="createAndGo"
+        >
+            <Icon name="mdi:video-outline" class="app-tabbar__icon" />
+            <span class="app-tabbar__label">Комната</span>
+        </button>
         <NuxtLink
             v-if="user"
             :to="`/profile/${encodeURIComponent(user.username)}`"
@@ -31,6 +40,7 @@
 
 <script setup lang="ts">
 const { user } = useAuthTokens()
+const { createAndGo } = useCreateRoom()
 </script>
 
 <style scoped>

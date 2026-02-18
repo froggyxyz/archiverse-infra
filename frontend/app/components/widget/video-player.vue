@@ -1,5 +1,14 @@
 <template>
-    <div ref="containerRef" class="av-video-player" @mouseenter="toggleIsShowOverlay" @mouseleave="toggleIsShowOverlay">
+    <div
+        ref="containerRef"
+        class="av-video-player"
+        :class="{ 'av-video-player--cursor-hidden': isOverlayHiddenByIdle }"
+        tabindex="0"
+        @mouseenter="onMouseEnter"
+        @mouseleave="onMouseLeave"
+        @mousemove="onMouseMove"
+        @keydown="onKeyDown"
+    >
         <Transition name="v">
             <div v-show="isLoading" class="av-video-player__preloader">
                 <Icon name="svg-spinners:3-dots-bounce" class="av-video-player__preloader-icon" />
@@ -13,8 +22,11 @@
                 @touchstart.stop
                 @touchmove.stop
                 @touchend.stop
+                @click="onOverlayClick"
+                @dblclick="onOverlayDblclick"
             >
                 <div class="av-video-player__header">{{ name }}</div>
+                <div class="av-video-player__video-click-area" />
                 <div class="av-video-player__controls">
                     <div class="av-video-player__controls-row">
                         <div class="av-video-player__progress-wrap">
@@ -106,13 +118,15 @@
             :controls="false"
             playsinline
             preload="auto"
+            @click="onVideoClick"
+            @dblclick="onVideoDblclick"
             @timeupdate="onTimeUpdate"
             @progress="updateBuffered"
             @loadedmetadata="onLoadedMetadata"
             @waiting="isLoading = true"
             @canplay="isLoading = false"
-            @play="isPlaying = true"
-            @pause="isPlaying = false"
+            @play="onPlay"
+            @pause="onPause"
             @volumechange="onVolumeChange"
         >
             <track kind="captions" src="captions.vtt" srclang="en" label="English" />
@@ -121,12 +135,23 @@
 </template>
 
 <script setup lang="ts">
-interface Props {
-    video: string;
-    name: string;
+type PlayerStateChange = {
+    playing?: boolean
+    currentTime?: number
 }
 
-const props = withDefaults(defineProps<Props>(), { name: 'empty' });
+interface Props {
+    video: string
+    name: string
+    /** Callback when user changes play/pause or seek (for room sync) */
+    onStateChange?: (state: PlayerStateChange) => void
+}
+
+const props = withDefaults(defineProps<Props>(), { name: 'empty' })
+
+const emit = defineEmits<{ 'state-change': [PlayerStateChange] }>()
+
+const isApplyingRemote = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const isHls = computed(() => (props.video ?? '').includes('.m3u8'));
@@ -174,8 +199,48 @@ const setQuality = (index: number): void => {
     currentLevelIndex.value = index;
 };
 
-const toggleIsShowOverlay = () => {
-    isShowOverlay.value = !isShowOverlay.value;
+const IDLE_HIDE_DELAY_MS = 5000;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+const isOverlayHiddenByIdle = ref(false);
+
+const clearIdleTimer = (): void => {
+    if (idleTimer != null) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+    }
+};
+
+const startIdleTimer = (): void => {
+    clearIdleTimer();
+    if (!isPlaying.value) return;
+    idleTimer = setTimeout(() => {
+        if (!isPlaying.value) return;
+        isShowOverlay.value = false;
+        isOverlayHiddenByIdle.value = true;
+        idleTimer = null;
+    }, IDLE_HIDE_DELAY_MS);
+};
+
+const onMouseEnter = (): void => {
+    clearIdleTimer();
+    isOverlayHiddenByIdle.value = false;
+    isShowOverlay.value = true;
+    startIdleTimer();
+};
+
+const onMouseLeave = (): void => {
+    clearIdleTimer();
+    isShowOverlay.value = false;
+    isOverlayHiddenByIdle.value = false;
+};
+
+const onMouseMove = (): void => {
+    clearIdleTimer();
+    if (isOverlayHiddenByIdle.value) {
+        isOverlayHiddenByIdle.value = false;
+        isShowOverlay.value = true;
+    }
+    startIdleTimer();
 };
 
 const playVideo = (): void => {
@@ -186,6 +251,24 @@ const pauseVideo = (): void => {
     videoRef.value?.pause();
 };
 
+const emitStateChange = (state: PlayerStateChange) => {
+    if (isApplyingRemote.value) return
+    props.onStateChange?.(state)
+    emit('state-change', state)
+}
+
+const onPlay = (): void => {
+    isPlaying.value = true
+    startIdleTimer()
+    emitStateChange({ playing: true })
+}
+
+const onPause = (): void => {
+    isPlaying.value = false
+    clearIdleTimer()
+    emitStateChange({ playing: false })
+}
+
 const toggleVideo = (): void => {
     if (videoRef.value) {
         videoRef.value.paused ? playVideo() : pauseVideo();
@@ -195,6 +278,7 @@ const toggleVideo = (): void => {
 const onSeekInput = (): void => {
     if (videoRef.value) {
         videoRef.value.currentTime = seekValue.value;
+        emitStateChange({ currentTime: seekValue.value });
     }
 };
 
@@ -246,6 +330,103 @@ const exitFullScreenVideo = (): void => {
 
 const toggleFullScreenVideo = (): void => {
     document.fullscreenElement ? exitFullScreenVideo() : requestFullScreenVideo();
+};
+
+const SEEK_STEP = 5;
+
+const seekRelative = (delta: number): void => {
+    const el = videoRef.value;
+    if (!el || !Number.isFinite(el.duration)) return;
+    const newTime = Math.max(0, Math.min(el.duration, el.currentTime + delta));
+    el.currentTime = newTime;
+    seekValue.value = newTime;
+    currentTime.value = newTime;
+    emitStateChange({ currentTime: newTime });
+};
+
+let singleClickTimer: ReturnType<typeof setTimeout> | null = null;
+
+const isClickOnControls = (e: MouseEvent): boolean =>
+    (e.target as HTMLElement).closest('.av-video-player__controls') != null;
+
+const onOverlayClick = (e: MouseEvent): void => {
+    if (isClickOnControls(e)) return;
+    containerRef.value?.focus();
+    if (singleClickTimer != null) {
+        clearTimeout(singleClickTimer);
+        singleClickTimer = null;
+        return;
+    }
+    singleClickTimer = setTimeout(() => {
+        toggleVideo();
+        singleClickTimer = null;
+    }, 300);
+};
+
+const onOverlayDblclick = (e: MouseEvent): void => {
+    if (isClickOnControls(e)) return;
+    if (singleClickTimer != null) {
+        clearTimeout(singleClickTimer);
+        singleClickTimer = null;
+    }
+    toggleFullScreenVideo();
+};
+
+const onVideoClick = (): void => {
+    containerRef.value?.focus();
+    if (singleClickTimer != null) {
+        clearTimeout(singleClickTimer);
+        singleClickTimer = null;
+        return;
+    }
+    singleClickTimer = setTimeout(() => {
+        toggleVideo();
+        singleClickTimer = null;
+    }, 300);
+};
+
+const onVideoDblclick = (): void => {
+    if (singleClickTimer != null) {
+        clearTimeout(singleClickTimer);
+        singleClickTimer = null;
+    }
+    toggleFullScreenVideo();
+};
+
+const onKeyDown = (e: KeyboardEvent): void => {
+    if (isApplyingRemote.value) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('input, textarea, [contenteditable="true"]')) return;
+    switch (e.code) {
+        case 'Space':
+            e.preventDefault();
+            toggleVideo();
+            break;
+        case 'Escape':
+            e.preventDefault();
+            if (isFullscreen.value) exitFullScreenVideo();
+            break;
+        case 'KeyF':
+            if (!e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                toggleFullScreenVideo();
+            }
+            break;
+        case 'KeyM':
+            e.preventDefault();
+            toggleMuteVideo();
+            break;
+        case 'ArrowLeft':
+            e.preventDefault();
+            seekRelative(-SEEK_STEP);
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            seekRelative(SEEK_STEP);
+            break;
+        default:
+            break;
+    }
 };
 
 const handleFullscreenChange = () => {
@@ -308,12 +489,36 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+    clearIdleTimer();
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
     }
 });
+
+const applyRemoteState = (state: { playing?: boolean; currentTime?: number }) => {
+    if (!videoRef.value) return
+    isApplyingRemote.value = true
+    try {
+        if (state.currentTime != null && Number.isFinite(state.currentTime)) {
+            videoRef.value.currentTime = state.currentTime
+            currentTime.value = state.currentTime
+            seekValue.value = state.currentTime
+        }
+        if (state.playing === true) {
+            videoRef.value.play().catch(() => {})
+        } else if (state.playing === false) {
+            videoRef.value.pause()
+        }
+    } finally {
+        setTimeout(() => { isApplyingRemote.value = false }, 100)
+    }
+}
+
+defineExpose({
+    applyRemoteState,
+})
 </script>
 
 <style scoped>
@@ -354,6 +559,20 @@ onUnmounted(() => {
     align-items: flex-start;
 
     background: linear-gradient(#080808a0 0%, transparent 20%, transparent 80%, #080808a0 100%);
+}
+
+.av-video-player__video-click-area {
+    flex: 1;
+    min-height: 0;
+    cursor: pointer;
+}
+
+.av-video-player:focus {
+    outline: none;
+}
+
+.av-video-player--cursor-hidden {
+    cursor: none;
 }
 
 .av-video-player__controls {

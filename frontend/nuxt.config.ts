@@ -13,6 +13,10 @@ export default defineNuxtConfig({
     middleware: ['auth'],
   },
 
+  build: {
+    transpile: ['vue-draggable-next'],
+  },
+
   modules: [
     '@nuxt/fonts',
     '@nuxt/eslint',

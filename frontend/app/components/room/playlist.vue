@@ -1,13 +1,46 @@
 <script setup lang="ts">
+import { VueDraggableNext } from 'vue-draggable-next'
 import type { RoomPlaylistItem } from '~/types/room'
 
 interface Props {
   items?: RoomPlaylistItem[]
+  /** mediaId для подсветки текущего видео */
+  currentMediaId?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   items: () => [],
 })
+
+const emit = defineEmits<{
+  add: []
+  remove: [itemId: string]
+  reorder: [itemIds: string[]]
+  select: [item: RoomPlaylistItem]
+}>()
+
+const sortedItems = ref<RoomPlaylistItem[]>([])
+
+watch(
+  () => props.items,
+  (val) => {
+    sortedItems.value = val?.length ? [...val] : []
+  },
+  { immediate: true, deep: true }
+)
+
+const onDragEnd = () => {
+  emit('reorder', sortedItems.value.map((i) => i.id))
+}
+
+const onAddClick = () => emit('add')
+
+const onRemove = (item: RoomPlaylistItem, e: Event) => {
+  e.stopPropagation()
+  emit('remove', item.id)
+}
+
+const onItemClick = (item: RoomPlaylistItem) => emit('select', item)
 </script>
 
 <template>
@@ -16,22 +49,33 @@ const props = withDefaults(defineProps<Props>(), {
       <h2 class="room-playlist__title">
         Плейлист
       </h2>
-      <UiButton size="sm" class="room-playlist__add-btn">
+      <UiButton size="sm" class="room-playlist__add-btn" @click="onAddClick">
         <Icon name="mdi:plus" class="room-playlist__add-icon" />
         Добавить из архива
       </UiButton>
     </div>
 
-    <ul v-if="props.items.length > 0" class="room-playlist__list">
+    <VueDraggableNext
+      v-if="sortedItems.length > 0"
+      v-model="sortedItems"
+      tag="ul"
+      class="room-playlist__list"
+      handle=".room-playlist__drag"
+      item-key="id"
+      @end="onDragEnd"
+    >
       <li
-        v-for="(item, index) in props.items"
+        v-for="(item, index) in sortedItems"
         :key="item.id"
         class="room-playlist__item"
+        :class="{ 'room-playlist__item--active': currentMediaId && item.mediaId === currentMediaId }"
+        @click="onItemClick(item)"
       >
         <button
           type="button"
           class="room-playlist__drag"
           aria-label="Перетащить"
+          @click.stop
         >
           <Icon name="mdi:drag" class="room-playlist__drag-icon" />
         </button>
@@ -55,17 +99,18 @@ const props = withDefaults(defineProps<Props>(), {
           type="button"
           class="room-playlist__remove"
           aria-label="Удалить из плейлиста"
+          @click="onRemove(item, $event)"
         >
           <Icon name="mdi:close" class="room-playlist__remove-icon" />
         </button>
       </li>
-    </ul>
+    </VueDraggableNext>
 
     <div v-else class="room-playlist__empty">
       <Icon name="mdi:playlist-music-outline" class="room-playlist__empty-icon" />
       <p class="room-playlist__empty-text">Плейлист пуст</p>
       <p class="room-playlist__empty-hint">Добавьте видео из архива</p>
-      <UiButton size="sm">
+      <UiButton size="sm" @click="onAddClick">
         <Icon name="mdi:plus" />
         Добавить из архива
       </UiButton>
@@ -123,10 +168,15 @@ const props = withDefaults(defineProps<Props>(), {
   border-radius: 8px;
   border: 1px solid transparent;
   transition: background 0.15s, border-color 0.15s;
+  cursor: pointer;
 }
 
 .room-playlist__item:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.room-playlist__item--active {
+  border-color: var(--accent-color);
 }
 
 .room-playlist__drag {

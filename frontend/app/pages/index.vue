@@ -5,9 +5,9 @@ import type { RoomPlaylistItem } from '~/types/room'
 const selectedFiles = ref<File[]>([])
 
 const roomPlaylistExample: RoomPlaylistItem[] = [
-  { id: '1', title: 'Sunset timelapse.mp4', duration: '2:34', thumbnailUrl: null },
-  { id: '2', title: 'Лекция по Vue 3', duration: '1:15:22', thumbnailUrl: null },
-  { id: '3', title: 'Музыкальный клип', duration: '4:12', thumbnailUrl: null },
+  { id: '1', mediaId: '1', title: 'Sunset timelapse.mp4', duration: '2:34', thumbnailUrl: null },
+  { id: '2', mediaId: '2', title: 'Лекция по Vue 3', duration: '1:15:22', thumbnailUrl: null },
+  { id: '3', mediaId: '3', title: 'Музыкальный клип', duration: '4:12', thumbnailUrl: null },
 ]
 const fileInputError = ref('')
 
@@ -30,6 +30,8 @@ const chatMessages = ref<ChatWindowMessage[]>([
         createdAt: new Date(),
     },
 ])
+
+const { createAndGo } = useCreateRoom()
 
 const onChatSend = (text: string) => {
     chatMessages.value.push({
@@ -59,7 +61,7 @@ const onChatSend = (text: string) => {
     <UiButton href="/dashboard">
       Dashboard
     </UiButton>
-    <UiButton href="/rooms/demo">
+    <UiButton @click="createAndGo">
       Комната
     </UiButton>
     <UiButton href="/">
