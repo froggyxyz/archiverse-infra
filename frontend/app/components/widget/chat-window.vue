@@ -15,27 +15,31 @@
                 :to="`/profile/${encodeURIComponent(userSlug)}`"
                 class="av-chat-window__user-link"
             >
-                <img
-                    v-if="avatarUrl"
-                    :src="avatarUrl"
-                    :alt="userName"
-                    class="av-chat-window__avatar"
-                >
-                <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
-                    <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
-                </div>
+                <template v-if="!hideAvatar">
+                    <img
+                        v-if="avatarUrl"
+                        :src="avatarUrl"
+                        :alt="userName"
+                        class="av-chat-window__avatar"
+                    >
+                    <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
+                        <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
+                    </div>
+                </template>
                 <span class="av-chat-window__name">{{ userName }}</span>
             </NuxtLink>
             <template v-else>
-                <img
-                    v-if="avatarUrl"
-                    :src="avatarUrl"
-                    :alt="userName"
-                    class="av-chat-window__avatar"
-                >
-                <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
-                    <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
-                </div>
+                <template v-if="!hideAvatar">
+                    <img
+                        v-if="avatarUrl"
+                        :src="avatarUrl"
+                        :alt="userName"
+                        class="av-chat-window__avatar"
+                    >
+                    <div v-else class="av-chat-window__avatar av-chat-window__avatar--placeholder">
+                        <Icon name="mdi:account" class="av-chat-window__avatar-icon" />
+                    </div>
+                </template>
                 <span class="av-chat-window__name">{{ userName }}</span>
             </template>
             <button
@@ -83,6 +87,7 @@ interface Props {
     disabled?: boolean
     showCloseButton?: boolean
     showBackButton?: boolean
+    hideAvatar?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {

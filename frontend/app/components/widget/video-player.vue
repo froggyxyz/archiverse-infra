@@ -2,7 +2,7 @@
     <div
         ref="containerRef"
         class="av-video-player"
-        :class="{ 'av-video-player--cursor-hidden': isOverlayHiddenByIdle }"
+        :class="{ 'av-video-player--cursor-hidden': isCursorHidden }"
         tabindex="0"
         @mouseenter="onMouseEnter"
         @mouseleave="onMouseLeave"
@@ -10,13 +10,22 @@
         @keydown="onKeyDown"
     >
         <Transition name="v">
-            <div v-show="isLoading" class="av-video-player__preloader">
+            <div v-show="isLoading && !hasCanPlayedOnce" class="av-video-player__preloader">
                 <Icon name="svg-spinners:3-dots-bounce" class="av-video-player__preloader-icon" />
             </div>
         </Transition>
         <Transition name="v">
             <div
-                v-show="isShowOverlay"
+                v-show="playbackBlockedByPolicy"
+                class="av-video-player__sync-overlay"
+                @click="onSyncOverlayClick"
+            >
+                <span class="av-video-player__sync-overlay-text">Нажмите для синхронизации воспроизведения</span>
+            </div>
+        </Transition>
+        <Transition name="v">
+            <div
+                v-show="isOverlayVisible"
                 class="av-video-player__overlay"
                 @mousedown.stop
                 @touchstart.stop
@@ -25,9 +34,12 @@
                 @click="onOverlayClick"
                 @dblclick="onOverlayDblclick"
             >
-                <div class="av-video-player__header">{{ name }}</div>
+                <div v-if="name" class="av-video-player__header">{{ name }}</div>
                 <div class="av-video-player__video-click-area" />
                 <div class="av-video-player__controls">
+                    <div v-if="$slots['above-controls']" class="av-video-player__controls-above">
+                        <slot name="above-controls" />
+                    </div>
                     <div class="av-video-player__controls-row">
                         <div class="av-video-player__progress-wrap">
                             <div class="av-video-player__track" />
@@ -78,6 +90,17 @@
                                         aria-label="Выбор качества"
                                     >
                                         <li
+                                            v-for="entry in sortedLevelEntries"
+                                            :key="entry.originalIndex"
+                                            role="option"
+                                            :aria-selected="currentLevelIndex === entry.originalIndex"
+                                            class="av-video-player__quality-option"
+                                            :class="{ 'av-video-player__quality-option--active': currentLevelIndex === entry.originalIndex }"
+                                            @click="setQuality(entry.originalIndex); isQualityMenuOpen = false"
+                                        >
+                                            {{ formatLevelLabel(entry.level) }}
+                                        </li>
+                                        <li
                                             role="option"
                                             :aria-selected="currentLevelIndex === -1"
                                             class="av-video-player__quality-option"
@@ -85,17 +108,6 @@
                                             @click="setQuality(-1); isQualityMenuOpen = false"
                                         >
                                             Авто
-                                        </li>
-                                        <li
-                                            v-for="(level, i) in hlsLevels"
-                                            :key="i"
-                                            role="option"
-                                            :aria-selected="currentLevelIndex === i"
-                                            class="av-video-player__quality-option"
-                                            :class="{ 'av-video-player__quality-option--active': currentLevelIndex === i }"
-                                            @click="setQuality(i); isQualityMenuOpen = false"
-                                        >
-                                            {{ formatLevelLabel(level) }}
                                         </li>
                                     </ul>
                                 </Transition>
@@ -124,7 +136,7 @@
             @progress="updateBuffered"
             @loadedmetadata="onLoadedMetadata"
             @waiting="isLoading = true"
-            @canplay="isLoading = false"
+            @canplay="onCanPlay"
             @play="onPlay"
             @pause="onPause"
             @volumechange="onVolumeChange"
@@ -145,11 +157,23 @@ interface Props {
     name: string
     /** Callback when user changes play/pause or seek (for room sync) */
     onStateChange?: (state: PlayerStateChange) => void
+    /** Когда задано, родитель управляет скрытием оверлея (страница комнаты) — свой таймер/leave не используем */
+    overlayHiddenByParent?: boolean
+    /** Элемент для полноэкранного режима (например, страница комнаты). Если задан, fullscreen включается на нём, а не на контейнере плеера */
+    fullscreenRoot?: import('vue').Ref<HTMLElement | null> | HTMLElement | null
 }
 
 const props = withDefaults(defineProps<Props>(), { name: 'empty' })
 
-const emit = defineEmits<{ 'state-change': [PlayerStateChange] }>()
+const isOverlayVisible = computed(() =>
+  props.overlayHiddenByParent === true ? false : isShowOverlay.value
+)
+
+const isCursorHidden = computed(() =>
+  props.overlayHiddenByParent === true || isOverlayHiddenByIdle.value
+)
+
+const emit = defineEmits<{ 'state-change': [PlayerStateChange]; 'sync-request': [] }>()
 
 const isApplyingRemote = ref(false)
 const videoRef = ref<HTMLVideoElement | null>(null);
@@ -158,6 +182,8 @@ const isHls = computed(() => (props.video ?? '').includes('.m3u8'));
 let hlsInstance: InstanceType<typeof import('hls.js').default> | null = null;
 const isShowOverlay = ref<boolean>(false);
 const isLoading = ref<boolean>(true);
+/** После первого canplay не показываем чёрный прелоадер при буферизации — остаётся последний кадр */
+const hasCanPlayedOnce = ref<boolean>(false);
 const isPlaying = ref<boolean>(false);
 const currentTime = ref<number>(0);
 const duration = ref<number>(0);
@@ -168,6 +194,7 @@ const seekValue = ref<number>(0);
 const bufferedEnd = ref<number>(0);
 const hlsLevels = ref<Array<{ height?: number; width?: number; bitrate?: number }>>([]);
 const currentLevelIndex = ref<number>(-1);
+const currentPlayingLevelIndex = ref<number>(-1);
 const isQualityMenuOpen = ref<boolean>(false);
 
 const bufferedPercent = computed(() => {
@@ -193,6 +220,16 @@ const formatLevelLabel = (level: { height?: number; width?: number; bitrate?: nu
     return '—';
 };
 
+const sortedLevelEntries = computed(() => {
+    const levels = hlsLevels.value;
+    return [...levels.entries()]
+        .sort((a, b) => {
+            const A = a[1], B = b[1];
+            return (B.height ?? 0) - (A.height ?? 0) || (B.bitrate ?? 0) - (A.bitrate ?? 0);
+        })
+        .map(([originalIndex, level]) => ({ originalIndex, level }));
+});
+
 const setQuality = (index: number): void => {
     if (!hlsInstance) return;
     hlsInstance.currentLevel = index;
@@ -211,6 +248,7 @@ const clearIdleTimer = (): void => {
 };
 
 const startIdleTimer = (): void => {
+    if (props.overlayHiddenByParent !== undefined) return
     clearIdleTimer();
     if (!isPlaying.value) return;
     idleTimer = setTimeout(() => {
@@ -230,12 +268,14 @@ const onMouseEnter = (): void => {
 
 const onMouseLeave = (): void => {
     clearIdleTimer();
+    if (props.overlayHiddenByParent !== undefined) return
     isShowOverlay.value = false;
     isOverlayHiddenByIdle.value = false;
 };
 
 const onMouseMove = (): void => {
     clearIdleTimer();
+    if (props.overlayHiddenByParent !== undefined) return
     if (isOverlayHiddenByIdle.value) {
         isOverlayHiddenByIdle.value = false;
         isShowOverlay.value = true;
@@ -258,6 +298,7 @@ const emitStateChange = (state: PlayerStateChange) => {
 }
 
 const onPlay = (): void => {
+    playbackBlockedByPolicy.value = false
     isPlaying.value = true
     startIdleTimer()
     emitStateChange({ playing: true })
@@ -289,10 +330,18 @@ const onTimeUpdate = (): void => {
     }
 };
 
+const onCanPlay = (): void => {
+    isLoading.value = false;
+    hasCanPlayedOnce.value = true;
+};
+
 const onLoadedMetadata = (): void => {
     if (videoRef.value) {
         duration.value = videoRef.value.duration;
-        if (videoRef.value.readyState >= 2) isLoading.value = false;
+        if (videoRef.value.readyState >= 2) {
+            isLoading.value = false;
+            hasCanPlayedOnce.value = true;
+        }
     }
 };
 
@@ -318,8 +367,19 @@ const toggleMuteVideo = (): void => {
     }
 };
 
+const fullscreenRootEl = computed(() => {
+    const r = props.fullscreenRoot;
+    if (!r) return null;
+    return typeof r === 'object' && 'value' in r ? (r as import('vue').Ref<HTMLElement | null>).value : (r as HTMLElement);
+});
+
 const requestFullScreenVideo = (): void => {
-    containerRef.value?.requestFullscreen();
+    const root = fullscreenRootEl.value;
+    if (root) {
+        root.requestFullscreen();
+    } else {
+        containerRef.value?.requestFullscreen();
+    }
 };
 
 const exitFullScreenVideo = (): void => {
@@ -430,7 +490,9 @@ const onKeyDown = (e: KeyboardEvent): void => {
 };
 
 const handleFullscreenChange = () => {
-    isFullscreen.value = !!document.fullscreenElement;
+    const el = document.fullscreenElement;
+    const root = fullscreenRootEl.value;
+    isFullscreen.value = !!el && (el === containerRef.value || (root != null && el === root));
 };
 
 const initHls = async () => {
@@ -444,7 +506,7 @@ const initHls = async () => {
             hlsLevels.value = data.levels.map((l) => ({ height: l.height, width: l.width, bitrate: l.bitrate }));
         });
         hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (_e, data) => {
-            currentLevelIndex.value = data.level;
+            currentPlayingLevelIndex.value = data.level;
         });
     } else if (videoRef.value.canPlayType('application/vnd.apple.mpegurl')) {
         videoRef.value.src = props.video;
@@ -453,12 +515,15 @@ const initHls = async () => {
 };
 
 watch(() => props.video, () => {
+    hasCanPlayedOnce.value = false;
+    isLoading.value = true;
     if (hlsInstance) {
         hlsInstance.destroy();
         hlsInstance = null;
     }
     hlsLevels.value = [];
     currentLevelIndex.value = -1;
+    currentPlayingLevelIndex.value = -1;
     isQualityMenuOpen.value = false;
     if (isHls.value && videoRef.value) initHls();
 }, { immediate: false });
@@ -497,6 +562,8 @@ onUnmounted(() => {
     }
 });
 
+const playbackBlockedByPolicy = ref(false)
+
 const applyRemoteState = (state: { playing?: boolean; currentTime?: number }) => {
     if (!videoRef.value) return
     isApplyingRemote.value = true
@@ -507,13 +574,20 @@ const applyRemoteState = (state: { playing?: boolean; currentTime?: number }) =>
             seekValue.value = state.currentTime
         }
         if (state.playing === true) {
-            videoRef.value.play().catch(() => {})
+            videoRef.value.play().catch(() => {
+                playbackBlockedByPolicy.value = true
+            })
         } else if (state.playing === false) {
+            playbackBlockedByPolicy.value = false
             videoRef.value.pause()
         }
     } finally {
         setTimeout(() => { isApplyingRemote.value = false }, 100)
     }
+}
+
+const onSyncOverlayClick = (): void => {
+    emit('sync-request')
 }
 
 defineExpose({
@@ -543,6 +617,24 @@ defineExpose({
 .av-video-player__preloader-icon {
     font-size: 48px;
     color: rgba(255, 255, 255, 0.9);
+}
+
+.av-video-player__sync-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+}
+
+.av-video-player__sync-overlay-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    padding: 12px 20px;
 }
 
 .av-video-player__overlay {
@@ -577,6 +669,11 @@ defineExpose({
 
 .av-video-player__controls {
     width: 100%;
+}
+
+.av-video-player__controls-above {
+    width: 100%;
+    flex-shrink: 0;
 }
 
 .av-video-player__controls-row {

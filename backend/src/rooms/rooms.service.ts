@@ -52,6 +52,12 @@ export type RoomChatMessageInfo = {
   createdAt: Date
 }
 
+export type RoomPlayerState = {
+  mediaId: string | null
+  currentTime: number
+  isPlaying: boolean
+}
+
 @Injectable()
 export class RoomsService {
   constructor(
@@ -137,6 +143,34 @@ export class RoomsService {
     }
   }
 
+  /** Превью комнаты по инвайт-коду (для отображения в чате). Не требует участия в комнате. */
+  async getRoomPreviewByInviteCode(
+    inviteCode: string,
+  ): Promise<{ creatorUsername: string; thumbnailUrl: string | null } | null> {
+    const room = await this.prisma.room.findUnique({
+      where: { inviteCode },
+      select: {
+        currentMediaId: true,
+        creator: { select: { username: true } },
+      },
+    })
+    if (!room) return null
+    let thumbnailUrl: string | null = null
+    if (room.currentMediaId) {
+      const media = await this.prisma.media.findUnique({
+        where: { id: room.currentMediaId },
+        select: { thumbnailKey: true },
+      })
+      if (media?.thumbnailKey) {
+        thumbnailUrl = await this.s3.getPresignedUrl(media.thumbnailKey)
+      }
+    }
+    return {
+      creatorUsername: room.creator.username,
+      thumbnailUrl,
+    }
+  }
+
   /** Войти по inviteCode: если ещё не участник — добавляем. Возвращает roomId или null. */
   async joinByInviteCode(
     inviteCode: string,
@@ -162,6 +196,37 @@ export class RoomsService {
     if (!p) throw new ForbiddenException('Not a room participant')
   }
 
+  async getRoomPlayerState(roomId: string, userId: string): Promise<RoomPlayerState> {
+    await this.ensureParticipant(roomId, userId)
+    const room = await this.prisma.room.findUnique({
+      where: { id: roomId },
+      select: { currentMediaId: true, currentTime: true, isPlaying: true },
+    })
+    if (!room) throw new NotFoundException('Room not found')
+    return {
+      mediaId: room.currentMediaId,
+      currentTime: room.currentTime,
+      isPlaying: room.isPlaying,
+    }
+  }
+
+  async updateRoomPlayerState(
+    roomId: string,
+    userId: string,
+    state: { mediaId?: string | null; currentTime?: number; isPlaying?: boolean },
+  ): Promise<void> {
+    await this.ensureParticipant(roomId, userId)
+    const data: { currentMediaId?: string | null; currentTime?: number; isPlaying?: boolean } = {}
+    if (state.mediaId !== undefined) data.currentMediaId = state.mediaId
+    if (state.currentTime !== undefined) data.currentTime = state.currentTime
+    if (state.isPlaying !== undefined) data.isPlaying = state.isPlaying
+    if (Object.keys(data).length === 0) return
+    await this.prisma.room.update({
+      where: { id: roomId },
+      data,
+    })
+  }
+
   async getParticipants(roomId: string, userId: string): Promise<RoomParticipantInfo[]> {
     await this.ensureParticipant(roomId, userId)
     const participants = await this.prisma.roomParticipant.findMany({
@@ -169,11 +234,14 @@ export class RoomsService {
       include: { user: { select: { id: true, username: true, avatarUrl: true } } },
       orderBy: { joinedAt: 'asc' },
     })
-    return participants.map((p) => ({
+    const avatarUrls = await Promise.all(
+      participants.map((p) => this.s3.getPresignedAvatarUrl(p.user.avatarUrl)),
+    )
+    return participants.map((p, i) => ({
       id: p.id,
       userId: p.user.id,
       username: p.user.username,
-      avatarUrl: p.user.avatarUrl,
+      avatarUrl: avatarUrls[i],
       joinedAt: p.joinedAt,
     }))
   }

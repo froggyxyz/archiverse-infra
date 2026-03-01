@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Room" ADD COLUMN     "currentMediaId" TEXT,
+ADD COLUMN     "currentTime" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "isPlaying" BOOLEAN NOT NULL DEFAULT false;

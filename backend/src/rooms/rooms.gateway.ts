@@ -108,6 +108,8 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ;(client.data as SocketData).joinedRoomIds?.add(dto.roomId)
       const participants = await this.rooms.getParticipants(dto.roomId, userId)
       this.server.to(`${ROOM_PREFIX}${dto.roomId}`).emit('participant:list', participants)
+      const playerState = await this.rooms.getRoomPlayerState(dto.roomId, userId)
+      client.emit('room:player-state', playerState)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       client.emit('room:error', { message: msg })
@@ -146,6 +148,11 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       await this.rooms.ensureParticipant(dto.roomId, userId)
+      await this.rooms.updateRoomPlayerState(dto.roomId, userId, {
+        mediaId: dto.mediaId,
+        currentTime: dto.currentTime,
+        isPlaying: dto.playing,
+      })
       const payload = {
         userId,
         playing: dto.playing,

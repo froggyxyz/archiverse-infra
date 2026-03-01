@@ -60,6 +60,15 @@ export class RoomsController {
     throw new NotFoundException('Room not found')
   }
 
+  @Get('invite-preview/:code')
+  async getInvitePreview(
+    @Param('code') inviteCode: string,
+  ): Promise<{ creatorUsername: string; thumbnailUrl: string | null }> {
+    const preview = await this.rooms.getRoomPreviewByInviteCode(inviteCode)
+    if (!preview) throw new NotFoundException('Room not found')
+    return preview
+  }
+
   @Post('join/:code')
   async joinByCode(
     @Param('code') inviteCode: string,

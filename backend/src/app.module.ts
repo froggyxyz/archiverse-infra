@@ -11,9 +11,11 @@ import { UsersModule } from './users/users.module'
 import { ArchiveModule } from './archive/archive.module'
 import { ChatsModule } from './chats/chats.module'
 import { RoomsModule } from './rooms/rooms.module'
+import { VaultModule } from './vault/vault.module'
 
 @Module({
   imports: [
+    VaultModule,
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.forRootAsync({
       useFactory: (config: ConfigService) => {

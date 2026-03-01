@@ -6,11 +6,19 @@ import type {
   RoomChatMessageInfo,
 } from '~/types/room'
 
+export type RoomInvitePreview = {
+  creatorUsername: string
+  thumbnailUrl: string | null
+}
+
 export const createRoomsEndpoints = (api: ApiClient) => ({
   create: () => api.post<RoomInfo>('/rooms'),
 
   joinByInviteCode: (inviteCode: string) =>
     api.post<{ roomId: string }>(`/rooms/join/${encodeURIComponent(inviteCode)}`),
+
+  getRoomInvitePreview: (inviteCode: string) =>
+    api.get<RoomInvitePreview>(`/rooms/invite-preview/${encodeURIComponent(inviteCode)}`),
 
   getRoom: (roomId: string) => api.get<RoomInfo>(`/rooms/${roomId}`),
 

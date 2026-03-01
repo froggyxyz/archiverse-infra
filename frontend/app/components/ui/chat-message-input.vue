@@ -96,7 +96,7 @@ onMounted(() => {
 
 .av-chat-input__textarea {
     flex: 1;
-    min-height: 24px;
+    min-height: 41px;
     max-height: 160px;
     padding: 0;
     border: none;

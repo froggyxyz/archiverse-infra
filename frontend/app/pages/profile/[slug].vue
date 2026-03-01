@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { formatSize } from '~/utils/format-size'
 import { ARCHIVE_STAGE_LABELS, MEDIA_STATUS_LABELS } from '~/types/archive'
 import type { MediaListItem } from '~/types/archive'
 
@@ -64,6 +63,18 @@ const isArchiveUploading = ref(false)
 const storageUsedPercent = computed(() => {
   if (!storage.value || storage.value.limitBytes === 0) return 0
   return Math.min(100, (storage.value.usedBytes / storage.value.limitBytes) * 100)
+})
+
+const STORAGE_RING_R = 64
+const STORAGE_RING_CIRCUMFERENCE = 2 * Math.PI * STORAGE_RING_R
+
+const storageRingStyle = computed(() => {
+  const p = storageUsedPercent.value / 100
+  const offset = STORAGE_RING_CIRCUMFERENCE * (1 - p)
+  return {
+    strokeDasharray: `${STORAGE_RING_CIRCUMFERENCE}`,
+    strokeDashoffset: `${offset}`,
+  }
 })
 
 const triggerFileSelect = () => {
@@ -161,66 +172,75 @@ watch(isOwnProfile, async (own) => {
       <p>{{ (error as { statusCode?: number })?.statusCode === 404 ? 'Пользователь не найден' : 'Не удалось загрузить профиль' }}</p>
     </div>
     <div v-else-if="profile" class="profile-page__content">
-      <div
-        class="profile-page__avatar-wrapper"
-        :class="{
-          'profile-page__avatar-wrapper--editable': isOwnProfile,
-          'profile-page__avatar-wrapper--uploading': isUploading,
-        }"
-        @click="triggerFileSelect"
-      >
-        <input
-          ref="fileInput"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          class="profile-page__file-input"
-          @change="handleAvatarChange"
-        >
-        <div v-if="isOwnProfile" class="profile-page__avatar-overlay">
-          {{ isUploading ? 'Загрузка...' : 'Сменить фото' }}
-        </div>
-        <div class="profile-page__avatar">
-          <img
-            v-if="profile.avatarUrl"
-            :src="profile.avatarUrl"
-            :alt="profile.username"
-            class="profile-page__avatar-img"
+      <header class="profile-page__header">
+        <div class="profile-page__avatar-with-ring">
+          <template v-if="isOwnProfile && storage">
+            <svg
+              class="profile-page__storage-ring"
+              viewBox="0 0 136 136"
+              aria-hidden="true"
+            >
+              <circle
+                class="profile-page__storage-ring-bg"
+                cx="68"
+                cy="68"
+                r="64"
+              />
+              <circle
+                class="profile-page__storage-ring-fill"
+                cx="68"
+                cy="68"
+                r="64"
+                :style="storageRingStyle"
+              />
+            </svg>
+          </template>
+          <div
+            class="profile-page__avatar-wrapper"
+            :class="{
+              'profile-page__avatar-wrapper--editable': isOwnProfile,
+              'profile-page__avatar-wrapper--uploading': isUploading,
+            }"
+            @click="triggerFileSelect"
           >
-          <div v-else class="profile-page__avatar-placeholder">
-            {{ profile.username.charAt(0).toUpperCase() }}
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="profile-page__file-input"
+              @change="handleAvatarChange"
+            >
+            <div v-if="isOwnProfile" class="profile-page__avatar-overlay">
+              {{ isUploading ? 'Загрузка...' : 'Сменить фото' }}
+            </div>
+            <div class="profile-page__avatar">
+              <img
+                v-if="profile.avatarUrl"
+                :src="profile.avatarUrl"
+                :alt="profile.username"
+                class="profile-page__avatar-img"
+              >
+              <div v-else class="profile-page__avatar-placeholder">
+                {{ profile.username.charAt(0).toUpperCase() }}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <h1 class="profile-page__username">
-        {{ profile.username }}
-      </h1>
-
-      <UiButton
-        v-if="!isOwnProfile"
-        class="profile-page__chat-btn"
-        :disabled="isStartingChat"
-        @click="startChat"
-      >
-        <Icon name="mdi:message-outline" />
-        {{ isStartingChat ? 'Загрузка…' : 'Написать' }}
-      </UiButton>
+        <h1 class="profile-page__username">
+          {{ profile.username }}
+        </h1>
+        <UiButton
+          v-if="!isOwnProfile"
+          class="profile-page__chat-btn"
+          :disabled="isStartingChat"
+          @click="startChat"
+        >
+          <Icon name="mdi:message-outline" />
+          {{ isStartingChat ? 'Загрузка…' : 'Написать' }}
+        </UiButton>
+      </header>
 
       <template v-if="isOwnProfile">
-        <section v-if="storage" class="profile-archive-storage">
-          <div class="profile-archive-storage__header">
-            <span>Хранилище</span>
-            <span class="profile-archive-storage__usage">
-              {{ formatSize(storage.usedBytes) }} / {{ formatSize(storage.limitBytes) }}
-            </span>
-          </div>
-          <div class="profile-archive-storage__bar">
-            <div
-              class="profile-archive-storage__fill"
-              :style="{ width: `${storageUsedPercent}%` }"
-            />
-          </div>
-        </section>
-
         <section class="profile-archive-upload">
           <h2 class="profile-archive__title">Загрузка</h2>
           <UiFileInput
@@ -384,12 +404,52 @@ watch(isOwnProfile, async (own) => {
   text-align: center;
 }
 
+.profile-page__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.profile-page__avatar-with-ring {
+  position: relative;
+  width: 135px;
+  height: 135px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-page__storage-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.profile-page__storage-ring-bg {
+  fill: none;
+  stroke: var(--bg-secondary);
+  stroke-width: 8;
+}
+
+.profile-page__storage-ring-fill {
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s ease;
+}
+
 .profile-page__avatar-wrapper {
   position: relative;
   width: 120px;
   height: 120px;
-  margin: 0 auto 1.5rem;
   cursor: default;
+  z-index: 1;
 }
 
 .profile-page__avatar-wrapper--editable {
@@ -458,11 +518,11 @@ watch(isOwnProfile, async (own) => {
 .profile-page__username {
   font-size: 1.75rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin: 0 0 1rem;
 }
 
 .profile-page__chat-btn {
-  margin-bottom: 1.5rem;
+  margin: 0;
 }
 
 .profile-archive__title {
@@ -470,39 +530,6 @@ watch(isOwnProfile, async (own) => {
   font-weight: 600;
   margin-bottom: 0.75rem;
   text-align: left;
-}
-
-.profile-archive-storage {
-  padding: 16px;
-  border-radius: 8px;
-  background-color: var(--bg-secondary);
-  margin-bottom: 1.5rem;
-}
-
-.profile-archive-storage__header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.profile-archive-storage__usage {
-  font-weight: 500;
-  color: var(--text-color);
-}
-
-.profile-archive-storage__bar {
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-  background-color: var(--color-primary);
-}
-
-.profile-archive-storage__fill {
-  height: 100%;
-  background-color: var(--accent-color);
-  transition: width 0.2s;
 }
 
 .profile-archive-upload {

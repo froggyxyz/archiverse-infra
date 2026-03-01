@@ -2,7 +2,12 @@
     <div class="av-message-bubble" :class="{ 'av-message-bubble--own': isOwn }">
         <div class="av-message-bubble__inner">
             <span v-if="!isOwn && senderName" class="av-message-bubble__sender">{{ senderName }}</span>
-            <p class="av-message-bubble__text">{{ text }}</p>
+            <p class="av-message-bubble__text">
+                <template v-for="(seg, i) in segments" :key="i">
+                    <template v-if="seg.type === 'text'">{{ seg.value }}</template>
+                    <UiChatRoomInviteLink v-else :invite-code="seg.code" />
+                </template>
+            </p>
             <time v-if="createdAt" class="av-message-bubble__time" :datetime="isoTime">{{ formattedTime }}</time>
         </div>
     </div>
@@ -10,6 +15,11 @@
 
 <script setup lang="ts">
 import { formatMessageTime } from '~/utils/format-date'
+
+/** Совпадает с полным URL (http(s)://домен) или только путём /rooms/join/CODE */
+const ROOM_JOIN_LINK_RE = /(?:https?:\/\/[^\s/]+)?\/rooms\/join\/([A-Za-z0-9]+)/gi
+
+type Segment = { type: 'text'; value: string } | { type: 'room-invite'; code: string }
 
 interface Props {
     text: string
@@ -20,6 +30,26 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
     isOwn: false,
+})
+
+const segments = computed<Segment[]>(() => {
+    const t = props.text
+    if (!t) return []
+    const result: Segment[] = []
+    let lastEnd = 0
+    const re = new RegExp(ROOM_JOIN_LINK_RE.source, 'gi')
+    let m: RegExpExecArray | null
+    while ((m = re.exec(t)) !== null) {
+        if (m.index > lastEnd) {
+            result.push({ type: 'text', value: t.slice(lastEnd, m.index) })
+        }
+        result.push({ type: 'room-invite', code: m[1] })
+        lastEnd = re.lastIndex
+    }
+    if (lastEnd < t.length) {
+        result.push({ type: 'text', value: t.slice(lastEnd) })
+    }
+    return result.length > 0 ? result : [{ type: 'text', value: t }]
 })
 
 const isoTime = computed(() => {

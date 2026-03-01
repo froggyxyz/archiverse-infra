@@ -51,7 +51,6 @@ const onItemClick = (item: RoomPlaylistItem) => emit('select', item)
       </h2>
       <UiButton size="sm" class="room-playlist__add-btn" @click="onAddClick">
         <Icon name="mdi:plus" class="room-playlist__add-icon" />
-        Добавить из архива
       </UiButton>
     </div>
 
@@ -110,10 +109,6 @@ const onItemClick = (item: RoomPlaylistItem) => emit('select', item)
       <Icon name="mdi:playlist-music-outline" class="room-playlist__empty-icon" />
       <p class="room-playlist__empty-text">Плейлист пуст</p>
       <p class="room-playlist__empty-hint">Добавьте видео из архива</p>
-      <UiButton size="sm" @click="onAddClick">
-        <Icon name="mdi:plus" />
-        Добавить из архива
-      </UiButton>
     </div>
   </section>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   auth: true,
+  layout: 'room',
 })
 
 const route = useRoute()

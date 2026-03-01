@@ -106,11 +106,14 @@ model Media {
 }
 
 model Room {
-  id          String   @id @default(cuid())
-  inviteCode  String   @unique // короткий код для ссылки приглашения
-  createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  inviteCode     String   @unique // короткий код для ссылки приглашения
+  createdById    String
+  currentMediaId String?  // последнее выбранное видео в плейлисте
+  currentTime    Float    @default(0) // позиция воспроизведения (сек)
+  isPlaying      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   creator   User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
   participants RoomParticipant[]

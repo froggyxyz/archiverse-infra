@@ -10,6 +10,7 @@ import type { UploadChatFileDto } from './dto/upload-chat-file.dto'
 import type { ChatAttachmentKeyDto } from './dto/create-message-socket.dto'
 import { ChatAttachmentType } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
+import { VAULT_TRANSIT_KEYS, VaultService } from '../vault/vault.service'
 
 const CHAT_KEY_PREFIX = 'chat/'
 const PRESIGNED_EXPIRES = 3600
@@ -60,6 +61,7 @@ export class ChatsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly vault: VaultService,
   ) {}
 
   async getChats(userId: string): Promise<ChatListItem[]> {
@@ -99,8 +101,9 @@ export class ChatsService {
           const thumbUrl = await this.s3.getPresignedUrl(previewKey, PRESIGNED_EXPIRES)
           attachmentPreview = { type: firstAtt.type, url: firstAtt.type === 'IMAGE' ? url : thumbUrl }
         }
+        const decryptedText = await this.vault.decrypt(lastMsg.text, VAULT_TRANSIT_KEYS.CHAT_MESSAGES)
         lastMessage = {
-          text: lastMsg.text,
+          text: decryptedText,
           attachmentPreview,
         }
       }
@@ -195,11 +198,12 @@ export class ChatsService {
             : null,
         })),
       )
+      const decryptedText = await this.vault.decrypt(m.text, VAULT_TRANSIT_KEYS.CHAT_MESSAGES)
       result.push({
         id: m.id,
         chatId: m.chatId,
         senderId: m.senderId,
-        text: m.text,
+        text: decryptedText,
         createdAt: m.createdAt,
         attachments,
       })
@@ -269,6 +273,9 @@ export class ChatsService {
       throw new BadRequestException('Message must have text or at least one attachment')
     }
 
+    const textToStore =
+      text != null && text !== '' ? await this.vault.encrypt(text, VAULT_TRANSIT_KEYS.CHAT_MESSAGES) : null
+
     const chatPrefix = this.s3.getChatKeyPrefix()
     const keys = attachmentKeys ?? []
     for (const k of keys) {
@@ -283,7 +290,7 @@ export class ChatsService {
       data: {
         chatId,
         senderId,
-        text: text ?? null,
+        text: textToStore,
         attachments: {
           create: keys.map((k) => ({
             type: k.type as ChatAttachmentType,
@@ -323,11 +330,12 @@ export class ChatsService {
       })),
     )
 
+    const decryptedText = await this.vault.decrypt(message.text, VAULT_TRANSIT_KEYS.CHAT_MESSAGES)
     const payload: MessageWithAttachments = {
       id: message.id,
       chatId: message.chatId,
       senderId: message.senderId,
-      text: message.text,
+      text: decryptedText,
       createdAt: message.createdAt,
       attachments,
     }

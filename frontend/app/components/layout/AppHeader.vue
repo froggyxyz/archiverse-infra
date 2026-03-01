@@ -77,7 +77,6 @@ watch(
     justify-content: space-between;
     height: 56px;
     padding: 0 16px;
-    border-bottom: 1px solid var(--bg-secondary);
     background-color: var(--bg-color);
 }
 

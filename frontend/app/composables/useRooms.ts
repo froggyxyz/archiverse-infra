@@ -130,7 +130,7 @@ export const useRooms = (roomIdRef: Ref<string | undefined>) => {
   type PlayerStatePayload = {
     playing?: boolean
     currentTime?: number
-    mediaId?: string
+    mediaId?: string | null
   }
 
   const emitPlayerState = (state: PlayerStatePayload) => {
@@ -147,6 +147,14 @@ export const useRooms = (roomIdRef: Ref<string | undefined>) => {
     }
     roomsSocket.on('player:state', handler)
     return () => { roomsSocket?.off('player:state', handler) }
+  }
+
+  type RoomPlayerStatePayload = { mediaId: string | null; currentTime: number; isPlaying: boolean }
+
+  const setupRoomPlayerStateListener = (callback: (state: RoomPlayerStatePayload) => void) => {
+    if (!roomsSocket) return () => {}
+    roomsSocket.on('room:player-state', callback)
+    return () => { roomsSocket?.off('room:player-state', callback) }
   }
 
   const fetchParticipants = async () => {
@@ -207,19 +215,26 @@ export const useRooms = (roomIdRef: Ref<string | undefined>) => {
       participants.value = list
     }
 
+    const onParticipantLeft = (payload: { userId: string }) => {
+      participants.value = participants.value.filter((p) => p.userId !== payload.userId)
+    }
+
     roomsSocket.off('chat:message')
     roomsSocket.off('playlist:updated')
     roomsSocket.off('participant:list')
+    roomsSocket.off('participant:left')
     roomsSocket.on('chat:message', (msg: RoomChatMessageInfo) => {
       onChatMessage(msg)
     })
     roomsSocket.on('playlist:updated', onPlaylistUpdated)
     roomsSocket.on('participant:list', onParticipantList)
+    roomsSocket.on('participant:left', onParticipantLeft)
 
     return () => {
       roomsSocket?.off('chat:message')
       roomsSocket?.off('playlist:updated')
       roomsSocket?.off('participant:list')
+      roomsSocket?.off('participant:left')
     }
   }
 
@@ -247,6 +262,7 @@ export const useRooms = (roomIdRef: Ref<string | undefined>) => {
     sendChatMessage,
     emitPlayerState,
     setupPlayerStateListener,
+    setupRoomPlayerStateListener,
     setupSocketListeners,
     createRoom,
     addToPlaylist,

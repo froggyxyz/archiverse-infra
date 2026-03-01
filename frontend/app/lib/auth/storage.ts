@@ -1,7 +1,7 @@
 import type { AuthTokens, AuthUser } from '~/types/auth'
 import { AUTH_KEYS } from './constants'
 
-const getStorage = () => (import.meta.client ? sessionStorage : null)
+const getStorage = () => (import.meta.client ? localStorage : null)
 
 export const getStoredTokens = (): AuthTokens | null => {
   const storage = getStorage()

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator'
+import { IsString, IsOptional, IsBoolean, IsNumber, ValidateIf } from 'class-validator'
 
 export class PlayerStateSocketDto {
   @IsString()
@@ -12,7 +12,7 @@ export class PlayerStateSocketDto {
   @IsNumber()
   currentTime?: number
 
-  @IsOptional()
+  @ValidateIf((_o, v) => v != null)
   @IsString()
-  mediaId?: string
+  mediaId?: string | null
 }
