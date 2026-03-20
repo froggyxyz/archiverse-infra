@@ -211,6 +211,8 @@ async function bootstrap() {
   )
   app.enableCors({ origin: true, credentials: true })
 
-  await app.listen(process.env.PORT ?? 3000)
+  const port = process.env.PORT ?? 3001
+  // 0.0.0.0 — доступ с телефона/других устройств в LAN по IP машины
+  await app.listen(port, '0.0.0.0')
 }
 bootstrap()

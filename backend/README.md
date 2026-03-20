@@ -31,6 +31,21 @@
 $ npm install
 ```
 
+### Локальная БД (PostgreSQL)
+
+Если Postgres установлен через Homebrew, создай пользователя и БД (один раз):
+
+```bash
+psql postgres -c "CREATE USER archiverse WITH PASSWORD 'archiverse' CREATEDB;"
+psql postgres -c "CREATE DATABASE archiverse OWNER archiverse;"
+```
+
+Если пользователь уже создан без CREATEDB: `psql postgres -c "ALTER USER archiverse CREATEDB;"`
+
+В `.env` укажи: `DATABASE_URL=postgresql://archiverse:archiverse@localhost:5432/archiverse`
+
+Миграции: `npx prisma migrate dev`
+
 ## Compile and run the project
 
 ```bash

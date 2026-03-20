@@ -613,26 +613,21 @@ onBeforeUnmount(() => {
   top: 16px;
   left: 16px;
   z-index: 2;
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
   border: none;
-  border-radius: 50%;
   color: var(--text-color);
   cursor: pointer;
   backdrop-filter: blur(8px);
   transition: background 0.2s, transform 0.15s;
 }
 
-.room-page__leave-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
-}
-
 .room-page__leave-icon {
-  font-size: 24px;
+  font-size: 46px;
+  font-weight: 700;
 }
 
 /* Четверть круга в углу: волновая анимация при новом сообщении в чат */
@@ -708,7 +703,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   background: rgba(0, 0, 0, 0.65);
   border: none;
-  border-radius: 50%;
+  border-radius: 12px;
   color: var(--text-color);
   cursor: pointer;
   backdrop-filter: blur(8px);
@@ -738,7 +733,7 @@ onBeforeUnmount(() => {
 .room-page__avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 12px;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.3);
 }
