@@ -12,7 +12,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const AVATAR_KEY_PREFIX = 'avatars/'
 const CHAT_KEY_PREFIX = 'chat/'
-const MAX_AVATAR_SIZE = 2 * 1024 * 1024 // 2 MB
+const MAX_AVATAR_SIZE = 150 * 1024 * 1024 // 150 MB
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PRESIGNED_AVATAR_EXPIRES_IN = 3600 // 1 hour
 const PRESIGNED_ARCHIVE_EXPIRES_IN = 3600 // 1 hour

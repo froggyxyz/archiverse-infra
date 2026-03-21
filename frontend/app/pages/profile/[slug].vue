@@ -10,6 +10,7 @@ const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 const { user } = useAuth()
 const { addSuccess, addError } = useAlerts()
+const { updateHeaderProfileCache } = useHeaderProfile()
 
 const {
   storage,
@@ -89,7 +90,8 @@ const handleAvatarChange = async (e: Event) => {
   isUploading.value = true
   target.value = ''
   try {
-    await useApiEndpoints().users.uploadAvatar(file)
+    const updated = await useApiEndpoints().users.uploadAvatar(file)
+    updateHeaderProfileCache(updated)
     addSuccess('Аватар обновлён')
     await refresh()
   } catch (e) {

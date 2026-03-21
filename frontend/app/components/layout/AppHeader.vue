@@ -21,12 +21,20 @@
             </button>
             <NuxtLink
                 v-if="user"
+                to="/settings"
+                class="app-header__settings-link app-header__settings-link--visible"
+            >
+                <Icon name="mdi:cog-outline" class="app-header__settings-icon" />
+                <span class="app-header__settings-text">Настройки</span>
+            </NuxtLink>
+            <NuxtLink
+                v-if="user"
                 :to="`/profile/${encodeURIComponent(user.username)}`"
                 class="app-header__avatar-link"
             >
                 <img
-                    v-if="profile?.avatarUrl"
-                    :src="profile.avatarUrl"
+                    v-if="headerProfile?.avatarUrl"
+                    :src="headerProfile.avatarUrl"
                     :alt="user.username"
                     class="app-header__avatar"
                 >
@@ -48,23 +56,9 @@
 <script setup lang="ts">
 const { user } = useAuthTokens()
 const { createAndGo } = useCreateRoom()
-const profile = ref<{ avatarUrl: string | null } | null>(null)
+const { headerProfile, ensureHeaderProfile } = useHeaderProfile()
 
-watch(
-    user,
-    async (u) => {
-        if (!u || import.meta.server) {
-            profile.value = null
-            return
-        }
-        try {
-            profile.value = await useApiEndpoints().users.getProfile(u.username)
-        } catch {
-            profile.value = null
-        }
-    },
-    { immediate: true }
-)
+watch(user, () => { void ensureHeaderProfile() }, { immediate: true })
 </script>
 
 <style scoped>
@@ -160,6 +154,46 @@ watch(
 
 @media (min-width: 1024px) {
     .app-header__room-text {
+        display: inline;
+    }
+}
+
+.app-header__settings-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+.app-header__settings-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.app-header__settings-link--visible {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .app-header__settings-link--visible {
+        display: flex;
+    }
+}
+
+.app-header__settings-icon {
+    font-size: 20px;
+}
+
+.app-header__settings-text {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .app-header__settings-text {
         display: inline;
     }
 }

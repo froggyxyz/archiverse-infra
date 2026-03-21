@@ -1,39 +1,47 @@
 <template>
-    <nav class="app-tabbar">
+    <nav class="app-tabbar" :class="{ 'app-tabbar--guest': !user }">
+        <template v-if="user">
+            <NuxtLink
+                :to="`/profile/${encodeURIComponent(user.username)}`"
+                class="app-tabbar__item"
+                active-class="app-tabbar__item--active"
+            >
+                <Icon name="mdi:account-outline" class="app-tabbar__icon" />
+                <span class="app-tabbar__label">Профиль</span>
+            </NuxtLink>
+            <NuxtLink
+                to="/chats"
+                class="app-tabbar__item"
+                active-class="app-tabbar__item--active"
+            >
+                <Icon name="mdi:message-outline" class="app-tabbar__icon" />
+                <span class="app-tabbar__label">Чаты</span>
+            </NuxtLink>
+            <button
+                type="button"
+                class="app-tabbar__item"
+                @click="createAndGo"
+            >
+                <Icon name="mdi:video-outline" class="app-tabbar__icon" />
+                <span class="app-tabbar__label">Комната</span>
+            </button>
+            <NuxtLink
+                to="/settings"
+                class="app-tabbar__item"
+                active-class="app-tabbar__item--active"
+            >
+                <Icon name="mdi:cog-outline" class="app-tabbar__icon" />
+                <span class="app-tabbar__label">Настройки</span>
+            </NuxtLink>
+        </template>
         <NuxtLink
-            to="/"
+            v-else
+            to="/login"
             class="app-tabbar__item"
             active-class="app-tabbar__item--active"
         >
-            <Icon name="mdi:home-outline" class="app-tabbar__icon" />
-            <span class="app-tabbar__label">Главная</span>
-        </NuxtLink>
-        <NuxtLink
-            v-if="user"
-            to="/chats"
-            class="app-tabbar__item"
-            active-class="app-tabbar__item--active"
-        >
-            <Icon name="mdi:message-outline" class="app-tabbar__icon" />
-            <span class="app-tabbar__label">Чаты</span>
-        </NuxtLink>
-        <button
-            v-if="user"
-            type="button"
-            class="app-tabbar__item"
-            @click="createAndGo"
-        >
-            <Icon name="mdi:video-outline" class="app-tabbar__icon" />
-            <span class="app-tabbar__label">Комната</span>
-        </button>
-        <NuxtLink
-            v-if="user"
-            :to="`/profile/${encodeURIComponent(user.username)}`"
-            class="app-tabbar__item"
-            active-class="app-tabbar__item--active"
-        >
-            <Icon name="mdi:account-outline" class="app-tabbar__icon" />
-            <span class="app-tabbar__label">Профиль</span>
+            <Icon name="mdi:login" class="app-tabbar__icon" />
+            <span class="app-tabbar__label">Вход</span>
         </NuxtLink>
     </nav>
 </template>
@@ -68,6 +76,10 @@ const { createAndGo } = useCreateRoom()
         padding: 0 16px;
         border-top: 1px solid var(--bg-secondary);
         background-color: var(--bg-color);
+    }
+
+    .app-tabbar--guest {
+        justify-content: center;
     }
 
     .app-tabbar__item {
